@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+coverage/
+
+.env
+.env.local
+.env.*.local
+
+# private working record — see AGENTS.md
+docs/
+
+.DS_Store
+*.log
+npm-debug.log*
+
+.vscode/
+.idea/
+.claude/settings.local.json

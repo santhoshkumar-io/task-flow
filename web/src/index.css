@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* The design tokens from 03-DESIGN-REFERENCE.md section 8 go in an @theme
+   block here in V6. This is the only file in web/ allowed to contain a
+   six-digit colour code — see AGENTS.md. */
