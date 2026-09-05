@@ -282,7 +282,7 @@ that changes between your laptop and a real server, and anything secret.
 ```
 NODE_ENV=development
 PORT=4000
-MONGODB_URI=mongodb://127.0.0.1:27017/taskflow
+MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER.mongodb.net/taskflow
 JWT_SECRET=<a long random string you generate>
 JWT_EXPIRES_IN=7d
 CORS_ORIGIN=http://localhost:5173
@@ -487,9 +487,10 @@ fair interview answer.
   or in one `useState`.
 - **No websockets or live updates.** Real value, real cost, not asked
   for. It goes in the "what I would do next" section of the README.
-- **No Docker.** Local Node and local MongoDB, with clear setup steps.
-  A reviewer with Node and MongoDB installed can run this in two
-  commands.
+- **No Docker.** Node runs locally and MongoDB is hosted, on MongoDB
+  Atlas. A reviewer needs Node and a connection string, and the code
+  takes either a hosted or a local MongoDB without changing — see
+  `docs/decisions/0004-mongodb-atlas.md`.
 
 ---
 
