@@ -9,6 +9,13 @@ export const taskRouter = Router();
 taskRouter.use(requireAuth);
 
 taskRouter.post("/", controller.create);
+taskRouter.get("/", controller.list);
+
+// MUST stay above /:id. Express matches routes in the order they are
+// registered, so the other way round it reads the word "stats" as an id and
+// answers 400 instead of the numbers.
+taskRouter.get("/stats", controller.stats);
+
 taskRouter.get("/:id", controller.getById);
 
 // PATCH, not PUT. PUT means replace the whole record, so a client that left a

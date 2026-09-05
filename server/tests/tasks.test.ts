@@ -328,3 +328,244 @@ describe("DELETE /api/tasks/:id", () => {
     expect(await TaskModel.countDocuments({})).toBe(1);
   });
 });
+
+describe("GET /api/tasks — the list", () => {
+  // A small fixed set so every assertion below can name a specific task.
+  async function seedSix() {
+    const rows: [string, string, string, boolean][] = [
+      ["Fix login bug", "todo", "high", false],
+      ["Add password reset", "todo", "low", true],
+      ["Design review", "in_review", "urgent", true],
+      ["Upgrade Node", "in_progress", "medium", false],
+      ["Archive old pages", "done", "low", true],
+      ["Timezone bug in due dates", "blocked", "urgent", false],
+    ];
+
+    for (const [title, status, priority, assigned] of rows) {
+      await createTask(cookieA, {
+        title,
+        status,
+        priority,
+        ...(assigned ? { assigneeId: idB } : {}),
+      });
+    }
+  }
+
+  function list(query: string, cookie = cookieA) {
+    return request(app).get(`/api/tasks${query}`).set("Cookie", cookie);
+  }
+
+  it("is 401 without a login", async () => {
+    const response = await request(app).get("/api/tasks");
+    expect(response.status).toBe(401);
+  });
+
+  it("returns the page shape the design's pager needs", async () => {
+    await seedSix();
+    const response = await list("");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      page: 1,
+      limit: 20,
+      total: 6,
+      totalPages: 1,
+      hasMore: false,
+    });
+    expect(response.body.items).toHaveLength(6);
+  });
+
+  it("pages without repeating anything", async () => {
+    await seedSix();
+
+    const first = await list("?page=1&limit=3");
+    const second = await list("?page=2&limit=3");
+
+    expect(first.body.items).toHaveLength(3);
+    expect(second.body.items).toHaveLength(3);
+    expect(first.body.total).toBe(6);
+    expect(second.body.total).toBe(6);
+    expect(first.body.hasMore).toBe(true);
+    expect(second.body.hasMore).toBe(false);
+
+    const firstIds = first.body.items.map((t: { _id: string }) => t._id);
+    const secondIds = second.body.items.map((t: { _id: string }) => t._id);
+    expect(
+      firstIds.filter((id: string) => secondIds.includes(id)),
+    ).toHaveLength(0);
+  });
+
+  it("filters by status", async () => {
+    await seedSix();
+    const response = await list("?status=todo");
+
+    expect(response.body.total).toBe(2);
+    expect(
+      response.body.items.every((t: { status: string }) => t.status === "todo"),
+    ).toBe(true);
+  });
+
+  it("filters by status and priority together", async () => {
+    await seedSix();
+    const response = await list("?status=todo&priority=high");
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.items[0].title).toBe("Fix login bug");
+  });
+
+  it("accepts the design's less common status and priority", async () => {
+    await seedSix();
+    const response = await list("?status=in_review&priority=urgent");
+
+    expect(response.status).toBe(200);
+    expect(response.body.items[0].title).toBe("Design review");
+  });
+
+  it("finds a partial word, which a text index could not", async () => {
+    await seedSix();
+    const response = await list("?q=log");
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.items[0].title).toBe("Fix login bug");
+  });
+
+  it("finds a task by its short key", async () => {
+    await seedSix();
+    const all = await list("");
+    const key = all.body.items[0].key;
+
+    const response = await list(`?q=${key}`);
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.items[0].key).toBe(key);
+  });
+
+  it("treats search text as text, not as a pattern", async () => {
+    await seedSix();
+    // Unescaped, ".*" would match every task. Escaped, it matches none.
+    const response = await list("?q=.*");
+
+    expect(response.body.total).toBe(0);
+  });
+
+  it("finds the tasks nobody is assigned to", async () => {
+    await seedSix();
+    const response = await list("?assigneeId=unassigned");
+
+    expect(response.body.total).toBe(3);
+    expect(
+      response.body.items.every(
+        (t: { assigneeId: unknown }) => t.assigneeId === null,
+      ),
+    ).toBe(true);
+  });
+
+  it("finds the tasks assigned to one person", async () => {
+    await seedSix();
+    const response = await list(`?assigneeId=${idB}`);
+
+    expect(response.body.total).toBe(3);
+  });
+
+  it("sorts by real priority order, not alphabetically", async () => {
+    await seedSix();
+    const response = await list("?sort=priority&order=desc");
+
+    const priorities = response.body.items.map(
+      (t: { priority: string }) => t.priority,
+    );
+    expect(priorities[0]).toBe("urgent");
+    expect(priorities.at(-1)).toBe("low");
+
+    // Alphabetically this would come out high, low, low, medium, urgent, urgent.
+    expect(priorities).not.toEqual([...priorities].sort());
+  });
+
+  it("keeps priorityRank in step when a task is edited", async () => {
+    const created = await createTask(cookieA, { priority: "low" });
+
+    await request(app)
+      .patch(`/api/tasks/${created.body.task._id}`)
+      .set("Cookie", cookieA)
+      .send({ priority: "urgent" });
+
+    const saved = await TaskModel.findById(created.body.task._id);
+    expect(saved!.priority).toBe("urgent");
+    expect(saved!.priorityRank).toBe(4);
+  });
+
+  it("refuses a limit above the cap", async () => {
+    const response = await list("?limit=500");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    expect(response.body.error.fields[0].field).toBe("limit");
+  });
+
+  it("refuses a status that is not one of the five", async () => {
+    const response = await list("?status=nonsense");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.fields[0].field).toBe("status");
+  });
+
+  it("refuses a sort field that is not on the allow-list", async () => {
+    const response = await list("?sort=passwordHash");
+
+    expect(response.status).toBe(400);
+  });
+
+  // The adversarial one. Express turns ?status[$ne]=done into an OBJECT, and
+  // passed into the query it would invert the filter and return every task
+  // that is NOT done.
+  it("refuses an object where a status was expected", async () => {
+    await seedSix();
+    const response = await list("?status[$ne]=done");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    expect(response.body.items).toBeUndefined();
+  });
+
+  it("refuses an object where an assignee id was expected", async () => {
+    const response = await list("?assigneeId[$ne]=null");
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("GET /api/tasks/stats", () => {
+  it("is matched by a direct count of the collection", async () => {
+    for (const status of ["todo", "todo", "in_progress", "done", "blocked"]) {
+      await createTask(cookieA, { title: `Task ${status}`, status });
+    }
+
+    const response = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    expect(response.status).toBe(200);
+
+    // Check both, trust neither alone.
+    expect(response.body.stats).toEqual({
+      total: await TaskModel.countDocuments({}),
+      todo: await TaskModel.countDocuments({ status: "todo" }),
+      inProgress: await TaskModel.countDocuments({ status: "in_progress" }),
+      done: await TaskModel.countDocuments({ status: "done" }),
+    });
+  });
+
+  it("is not mistaken for a task id", async () => {
+    const response = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    // Registered below /:id, this would be 400 INVALID_ID instead.
+    expect(response.status).toBe(200);
+    expect(response.body.stats).toBeDefined();
+  });
+
+  it("is 401 without a login", async () => {
+    const response = await request(app).get("/api/tasks/stats");
+    expect(response.status).toBe(401);
+  });
+});

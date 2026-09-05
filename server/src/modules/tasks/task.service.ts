@@ -1,9 +1,14 @@
 import { Types } from "mongoose";
 import { AppError } from "../../lib/AppError.js";
+import { escapeRegex } from "../../lib/escapeRegex.js";
 import { nextTaskKey } from "../../models/counter.model.js";
 import { TaskModel, type TaskDocument } from "../../models/task.model.js";
 import { UserModel } from "../../models/user.model.js";
-import type { CreateTaskInput, UpdateTaskInput } from "./task.schema.js";
+import type {
+  CreateTaskInput,
+  ListTasksQuery,
+  UpdateTaskInput,
+} from "./task.schema.js";
 
 // The rules. Knows nothing about HTTP: no request, no response, no status
 // codes beyond what AppError carries.
@@ -35,6 +40,102 @@ export async function create(
   });
 
   return task.populate(WITH_PEOPLE);
+}
+
+export interface TaskPage {
+  items: TaskDocument[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+export async function list(query: ListTasksQuery): Promise<TaskPage> {
+  const filter = buildFilter(query);
+  const skip = (query.page - 1) * query.limit;
+
+  // "priority" the word sorts alphabetically and meaninglessly. The stored
+  // rank number is what actually orders low → medium → high → urgent.
+  const sortField = query.sort === "priority" ? "priorityRank" : query.sort;
+  const direction = query.order === "asc" ? 1 : -1;
+
+  // Two questions, one round trip. The page of records and the total the
+  // design's "Showing 1–10 of 42 tasks" line needs. Running them one after the
+  // other would take twice as long for no reason.
+  const [items, total] = await Promise.all([
+    TaskModel.find(filter)
+      .sort({ [sortField]: direction, _id: direction })
+      .skip(skip)
+      .limit(query.limit)
+      .populate(WITH_PEOPLE),
+    TaskModel.countDocuments(filter),
+  ]);
+
+  return {
+    items,
+    page: query.page,
+    limit: query.limit,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    hasMore: skip + items.length < total,
+  };
+}
+
+// The four numbers on the dashboard, from ONE pass over the collection rather
+// than four separate counts.
+export async function getStats(): Promise<{
+  total: number;
+  todo: number;
+  inProgress: number;
+  done: number;
+}> {
+  const rows = await TaskModel.aggregate<{ _id: string; count: number }>([
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+
+  const byStatus = new Map(rows.map((row) => [row._id, row.count]));
+  const countOf = (status: string) => byStatus.get(status) ?? 0;
+
+  return {
+    total: rows.reduce((sum, row) => sum + row.count, 0),
+    todo: countOf("todo"),
+    inProgress: countOf("in_progress"),
+    done: countOf("done"),
+  };
+}
+
+function buildFilter(query: ListTasksQuery): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
+
+  if (query.status) filter.status = query.status;
+  if (query.priority) filter.priority = query.priority;
+
+  if (query.assigneeId) {
+    filter.assigneeId =
+      query.assigneeId === "unassigned"
+        ? null
+        : new Types.ObjectId(query.assigneeId);
+  }
+
+  if (query.q) {
+    // A regular expression rather than MongoDB's text index, because a text
+    // index matches whole words only — "log" would never find "login", which
+    // is exactly what someone typing into a search box expects.
+    //
+    // The honest cost: an unanchored pattern cannot use an index, so this
+    // scans. At this size that is milliseconds. Past roughly ten thousand
+    // tasks the answer is a text index or a real search engine.
+    const pattern = new RegExp(escapeRegex(query.q), "i");
+    filter.$or = [
+      { title: pattern },
+      { description: pattern },
+      // So typing TF-18 finds that one task.
+      { key: pattern },
+    ];
+  }
+
+  return filter;
 }
 
 export async function getById(id: string): Promise<TaskDocument> {
