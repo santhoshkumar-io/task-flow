@@ -5,6 +5,7 @@ import { env } from "./config/env.js";
 import { isDbConnected } from "./config/db.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
+import { taskRouter } from "./modules/tasks/task.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 
 // Builds the Express app and deliberately never calls listen(). Tests import
@@ -46,6 +47,7 @@ export function createApp() {
 
   app.use("/api/auth", authRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/tasks", taskRouter);
 
   // Order below this line is the whole point. Anything registered after an
   // error handler can never reach it, so these two are always last, and the

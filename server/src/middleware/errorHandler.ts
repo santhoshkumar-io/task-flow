@@ -81,6 +81,19 @@ function describe(err: unknown): Described {
     };
   }
 
+  // Mongoose could not turn a value into the type the model expects — almost
+  // always an id like "not-a-real-id" that is not 24 hex characters. The client
+  // sent something wrong, so this is a 400. Without this branch it falls
+  // through to the 500 below, which would be us blaming ourselves for their
+  // typo.
+  if (err instanceof mongoose.Error.CastError) {
+    return {
+      status: 400,
+      code: "INVALID_ID",
+      message: `"${String(err.value)}" is not a valid ${err.path}`,
+    };
+  }
+
   if (err instanceof SyntaxError && "body" in err) {
     return {
       status: 400,
