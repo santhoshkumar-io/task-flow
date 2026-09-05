@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
+import { ZodError } from "zod";
 import { AppError } from "../lib/AppError.js";
 import { isProduction } from "../config/env.js";
 
@@ -20,14 +21,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  const { status, code, message } = describe(err);
+  const { status, code, message, fields } = describe(err);
 
   // Anything the client did not cause is worth seeing in the server log.
   if (status >= 500) {
     console.error("[error]", err);
   }
 
-  const body: Record<string, unknown> = { error: { code, message } };
+  const errorBody: Record<string, unknown> = { code, message };
+  if (fields) {
+    errorBody.fields = fields;
+  }
+  const body: Record<string, unknown> = { error: errorBody };
 
   // A stack trace tells an attacker your folder layout and library versions.
   // It is useful on a laptop and never acceptable in production.
@@ -38,7 +43,14 @@ export function errorHandler(
   res.status(status).json(body);
 }
 
-function describe(err: unknown): { status: number; code: string; message: string } {
+interface Described {
+  status: number;
+  code: string;
+  message: string;
+  fields?: { field: string; message: string }[];
+}
+
+function describe(err: unknown): Described {
   if (err instanceof AppError) {
     return { status: err.status, code: err.code, message: err.message };
   }
@@ -50,6 +62,22 @@ function describe(err: unknown): { status: number; code: string; message: string
       status: 503,
       code: "DATABASE_UNAVAILABLE",
       message: "The database is not reachable right now.",
+    };
+  }
+
+  // Input that failed its Zod check. The client sent something wrong, so this
+  // is a 400 and never a 500, and the reply names the fields so a form can show
+  // the message beside the right box.
+  if (err instanceof ZodError) {
+    const fields = err.issues.map((issue) => ({
+      field: issue.path.join(".") || "(body)",
+      message: issue.message,
+    }));
+    return {
+      status: 400,
+      code: "VALIDATION_ERROR",
+      message: fields[0]?.message ?? "The request is not valid.",
+      fields,
     };
   }
 
