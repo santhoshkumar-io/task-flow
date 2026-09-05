@@ -29,14 +29,20 @@ export async function stats(_req: Request, res: Response) {
 }
 
 export async function getById(req: Request, res: Response) {
-  const task = await taskService.getById(req.params.id as string);
+  const { task, commentCount } = await taskService.getById(
+    req.params.id as string,
+  );
 
-  res.json({ task });
+  res.json({ task, commentCount });
 }
 
 export async function update(req: Request, res: Response) {
   const input = updateTaskSchema.parse(req.body);
-  const task = await taskService.update(req.params.id as string, input);
+  const task = await taskService.update(
+    req.params.id as string,
+    input,
+    currentUser(req)._id,
+  );
 
   res.json({ task });
 }

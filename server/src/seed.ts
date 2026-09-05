@@ -1,6 +1,8 @@
 import { env, isProduction } from "./config/env.js";
 import { connectDb, disconnectDb } from "./config/db.js";
 import { hashPassword } from "./lib/password.js";
+import { ActivityModel } from "./models/activity.model.js";
+import { CommentModel } from "./models/comment.model.js";
 import { CounterModel, nextTaskKey } from "./models/counter.model.js";
 import { TaskModel, type TaskPriority, type TaskStatus } from "./models/task.model.js";
 import { UserModel } from "./models/user.model.js";
@@ -79,14 +81,18 @@ async function seed() {
 
   await connectDb(env.MONGODB_URI);
 
-  console.log("\nDeleting existing users, tasks and counters...");
-  const [users, tasks, counters] = await Promise.all([
+  console.log("\nDeleting existing data...");
+  const [users, tasks, counters, comments, activity] = await Promise.all([
     UserModel.deleteMany({}),
     TaskModel.deleteMany({}),
     CounterModel.deleteMany({}),
+    CommentModel.deleteMany({}),
+    ActivityModel.deleteMany({}),
   ]);
   console.log(
-    `  removed ${users.deletedCount} users, ${tasks.deletedCount} tasks, ${counters.deletedCount} counters`,
+    `  removed ${users.deletedCount} users, ${tasks.deletedCount} tasks, ` +
+      `${counters.deletedCount} counters, ${comments.deletedCount} comments, ` +
+      `${activity.deletedCount} activity`,
   );
 
   // Hashed once and reused: bcrypt at cost 12 takes about half a second, and
@@ -100,8 +106,9 @@ async function seed() {
   // One at a time, on purpose: nextTaskKey() is meant to be safe under
   // simultaneous use, but a seed does not need to prove that, and this way the
   // keys come out in the same order as the list above.
+  const createdTasks = [];
   for (const item of taskSeeds) {
-    await TaskModel.create({
+    createdTasks.push(await TaskModel.create({
       key: await nextTaskKey(),
       title: item.title,
       description: item.description,
@@ -112,9 +119,51 @@ async function seed() {
       // Alternate the creator so "only the creator may delete" can actually be
       // demonstrated from either account.
       creatorId: created[taskSeeds.indexOf(item) % 2]!._id,
-    });
+    }));
   }
-  console.log(`Created ${taskSeeds.length} tasks.\n`);
+  console.log(`Created ${taskSeeds.length} tasks.`);
+
+  // A few real conversations, so the task detail screen in V8 has something to
+  // show and is never built against made up data.
+  const conversations: [number, [number, string][]][] = [
+    [0, [
+      [1, "Reproduced on Safari 17. Only happens after the OAuth redirect."],
+      [0, "Good catch. It looks like the cookie is being set without SameSite."],
+      [1, "Trying a fix now — will push to a branch this afternoon."],
+    ]],
+    [1, [
+      [0, "Stripe support confirmed they retry after 8 seconds if we are slow."],
+      [1, "So we need the handler to be idempotent. Blocked until we add the event id check."],
+    ]],
+    [13, [
+      [1, "Left a few notes on the pricing module. Mostly naming."],
+    ]],
+  ];
+
+  let commentCount = 0;
+  for (const [taskIndex, messages] of conversations) {
+    for (const [authorIndex, body] of messages) {
+      await CommentModel.create({
+        taskId: createdTasks[taskIndex]!._id,
+        authorId: created[authorIndex]!._id,
+        body,
+      });
+      commentCount += 1;
+    }
+  }
+  console.log(`Created ${commentCount} comments.`);
+
+  // One "created" row per task, so the Activity card is never empty.
+  await ActivityModel.insertMany(
+    createdTasks.map((task) => ({
+      taskId: task._id,
+      actorId: task.creatorId,
+      type: "created" as const,
+      from: null,
+      to: null,
+    })),
+  );
+  console.log(`Created ${createdTasks.length} activity records.\n`);
 
   const byStatus = await TaskModel.aggregate([
     { $group: { _id: "$status", count: { $sum: 1 } } },
