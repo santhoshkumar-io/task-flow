@@ -27,6 +27,16 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
+  // "unreachable" falls through to the screen deliberately.
+  //
+  // Nothing answered, so we do not know whether this person is signed in — and
+  // sending them to login on a guess is the harmful direction: it loses their
+  // place over a server restart when their cookie was still valid. Staying put
+  // lets the screen show its own error state, which is what the design draws.
+  //
+  // It is also self-correcting. If they really are signed out, the screen's own
+  // requests come back 401 and the global handler drops them to login for a
+  // real reason rather than a guessed one.
   return <Outlet />;
 }
 
@@ -47,5 +57,9 @@ export function PublicOnlyRoute() {
     return <Navigate to="/tasks" replace />;
   }
 
+  // "unreachable" shows the login form. Not because we think they are signed
+  // out, but because it is the one screen that is useful when the server is
+  // down: they can try, and the attempt fails with a message that says the
+  // server could not be reached.
   return <Outlet />;
 }

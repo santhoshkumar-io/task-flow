@@ -39,3 +39,47 @@ export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   high: "High",
   urgent: "Urgent",
 };
+
+// A person as they appear ON another record. The server stores only an id and
+// calls .populate() to fill in these three fields, so `assigneeId` on a task
+// arrives as this object and NOT as a string. Typing it as a string is the
+// mistake that silently renders "[object Object]".
+export interface PersonRef {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+export interface Task {
+  _id: string;
+  /** The short readable id from the design: TF-118. */
+  key: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  /** Null when nobody is assigned — the "Unassigned" case the table must draw. */
+  assigneeId: PersonRef | null;
+  creatorId: PersonRef;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Dates arrive as ISO strings, not Date objects: JSON has no date type. They
+// are turned into a Date at the moment of formatting, in lib/time.ts.
+
+/**
+ * Exactly what GET /api/tasks answers with. Note there is no wrapper object —
+ * unlike POST /api/tasks ({ task }) and GET /api/users ({ users }), the list
+ * route returns this shape at the top level.
+ */
+export interface TaskPage {
+  items: Task[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  /** True when more pages exist — what the mobile "Load more" button reads. */
+  hasMore: boolean;
+}

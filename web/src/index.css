@@ -111,3 +111,73 @@
   border-radius: var(--radius-badge);
   animation: tf-pulse 1.4s ease-in-out infinite;
 }
+
+/* ---------------------------------------------------------------------------
+   V7 movement — the toast sliding in, and the drawer coming in from the right.
+
+   Written by hand rather than pulling in tailwindcss-animate for four
+   keyframes. Radix sets data-state="open"/"closed" on the elements itself, so
+   these hook straight onto that.
+   --------------------------------------------------------------------------- */
+
+@keyframes tf-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes tf-slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes tf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tf-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.tf-slide-panel[data-state="open"] {
+  animation: tf-slide-in-right 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tf-slide-panel[data-state="closed"] {
+  animation: tf-slide-out-right 180ms ease-in;
+}
+
+.tf-fade[data-state="open"] {
+  animation: tf-fade-in 180ms ease-out;
+}
+
+.tf-fade[data-state="closed"] {
+  animation: tf-fade-out 150ms ease-in;
+}
+
+/* Anyone who has asked their system for less movement gets none of it. The
+   panel still opens and closes; it simply appears instead of sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .tf-skeleton,
+  .tf-slide-panel[data-state],
+  .tf-fade[data-state] {
+    animation: none;
+  }
+}

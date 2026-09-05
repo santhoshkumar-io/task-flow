@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { TaskListPage } from "./pages/TaskListPage";
 
 // The URL map.
 //
@@ -26,10 +27,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: "/", element: <Navigate to="/tasks" replace /> },
-          {
-            path: "/tasks",
-            element: <PlaceholderPage title="Tasks" arrivesIn="V7" />,
-          },
+          { path: "/tasks", element: <TaskListPage /> },
           {
             path: "/tasks/:id",
             element: <PlaceholderPage title="Task detail" arrivesIn="V8" />,

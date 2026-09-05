@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/auth-context";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
@@ -10,6 +11,7 @@ interface TopBarProps {
 
 export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     // 56px tall — see docs/decisions/0003-design-tokens.md, a chosen value.
@@ -48,22 +50,39 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         </ol>
       </nav>
 
-      {/* Search and the notification bell are drawn in the design but do
-          nothing yet. Search arrives in V7 on the list screen itself; the bell
-          is on the deliberate exclusion list. Both are marked disabled so
-          nothing on screen pretends to work. */}
-      <button
-        type="button"
-        disabled
-        title="Search arrives with the task list"
-        className="hidden h-9 w-56 cursor-not-allowed items-center gap-2 rounded-lg border border-line bg-white px-3 text-sm text-muted opacity-60 lg:flex"
+      {/* Inert in V6 because there was no list to search. Now it hands the
+          text to the task list, which owns searching — the same ?q= the
+          filter bar writes, so one search and one set of results.
+          The notification bell stays disabled: it is on the deliberate
+          exclusion list, not merely unbuilt. */}
+      <form
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const text = new FormData(event.currentTarget).get("q");
+          navigate(`/tasks?q=${encodeURIComponent(String(text ?? "").trim())}`);
+        }}
+        className="hidden lg:block"
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[1.5]">
-          <circle cx="7" cy="7" r="4.5" />
-          <path d="M10.5 10.5L14 14" strokeLinecap="round" />
-        </svg>
-        Search
-      </button>
+        <label htmlFor="global-search" className="sr-only">
+          Search tasks
+        </label>
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">
+            <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[1.5]">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5L14 14" strokeLinecap="round" />
+            </svg>
+          </span>
+          <input
+            id="global-search"
+            name="q"
+            type="search"
+            placeholder="Search tasks…"
+            className="h-9 w-56 rounded-lg border border-line bg-white pr-3 pl-8 text-sm text-ink placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none"
+          />
+        </div>
+      </form>
 
       <button
         type="button"

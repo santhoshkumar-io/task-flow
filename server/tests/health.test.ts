@@ -37,6 +37,53 @@ describe("a malformed JSON body", () => {
   });
 });
 
+describe("the request id", () => {
+  it("is on every reply, even a successful one", async () => {
+    const response = await request(app).get("/api/health");
+
+    expect(response.headers["x-request-id"]).toMatch(/^[0-9a-f]{7}$/);
+  });
+
+  it("is different on two separate requests", async () => {
+    const [first, second] = await Promise.all([
+      request(app).get("/api/health"),
+      request(app).get("/api/health"),
+    ]);
+
+    expect(first.headers["x-request-id"]).not.toBe(
+      second.headers["x-request-id"],
+    );
+  });
+
+  it("appears in the error body AND matches the header", async () => {
+    // The design's error line reads "Request ID: b1f2fc4 · 500 from
+    // /api/tasks". Two copies of one value is only useful if they agree.
+    const response = await request(app).get("/api/does-not-exist");
+
+    expect(response.body.error.requestId).toBe(
+      response.headers["x-request-id"],
+    );
+  });
+
+  it("reuses an id the caller sent, so a trace survives across services", async () => {
+    const response = await request(app)
+      .get("/api/health")
+      .set("x-request-id", "abc123");
+
+    expect(response.headers["x-request-id"]).toBe("abc123");
+  });
+
+  it("throws away a caller id that is not plain alphanumerics", async () => {
+    // An id from outside is untrusted and ends up in a response header. This
+    // one carries a CRLF, the classic header-injection payload.
+    const response = await request(app)
+      .get("/api/health")
+      .set("x-request-id", "bad value: injected");
+
+    expect(response.headers["x-request-id"]).toMatch(/^[0-9a-f]{7}$/);
+  });
+});
+
 describe("GET /api/health with the database unreachable", () => {
   // Proves the other half of the health check. Pulling the connection down and
   // putting it back is the only honest way to see the "disconnected" answer.

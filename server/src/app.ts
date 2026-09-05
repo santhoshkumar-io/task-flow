@@ -4,6 +4,7 @@ import express from "express";
 import { env } from "./config/env.js";
 import { isDbConnected } from "./config/db.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { requestId } from "./middleware/requestId.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { taskRouter } from "./modules/tasks/task.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
@@ -15,6 +16,11 @@ import { usersRouter } from "./modules/users/users.routes.js";
 export function createApp() {
   const app = express();
 
+  // FIRST, before anything that can fail. A request that is rejected by CORS
+  // or dies on a malformed body still needs an id, because those are exactly
+  // the failures somebody will ask about.
+  app.use(requestId);
+
   // Brought forward from V10 because nothing else here works without it: the
   // browser refuses a cross-origin request from :5173 to :4000 otherwise.
   // The origin is named exactly and never "*" — with credentials involved the
@@ -23,6 +29,12 @@ export function createApp() {
     cors({
       origin: env.CORS_ORIGIN,
       credentials: true,
+      // Without this line the header is sent but the BROWSER hides it from
+      // JavaScript. Cross-origin, fetch can only read a short safelist of
+      // response headers, and x-request-id is not on it — so
+      // response.headers.get("x-request-id") would be null on the page while
+      // curl showed the header perfectly. Naming it here lifts that block.
+      exposedHeaders: ["x-request-id"],
     }),
   );
 

@@ -17,20 +17,29 @@ export function notFoundHandler(req: Request, _res: Response, next: NextFunction
 // never runs, so it stays even though it is unused.
 export function errorHandler(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ) {
   const { status, code, message, fields } = describe(err);
 
-  // Anything the client did not cause is worth seeing in the server log.
+  // Anything the client did not cause is worth seeing in the server log. The
+  // id goes FIRST on the line: it is the one thing a user can read off their
+  // screen and hand over, so it is what the log gets searched for.
   if (status >= 500) {
-    console.error("[error]", err);
+    console.error(`[error] [${req.id}] ${req.method} ${req.originalUrl}`, err);
   }
 
   const errorBody: Record<string, unknown> = { code, message };
   if (fields) {
     errorBody.fields = fields;
+  }
+  // Also in the body, not only the x-request-id header. A browser can be
+  // blocked from reading a custom header by CORS, and the header is gone the
+  // moment somebody copies the JSON out of a bug report — the body survives
+  // both.
+  if (req.id) {
+    errorBody.requestId = req.id;
   }
   const body: Record<string, unknown> = { error: errorBody };
 

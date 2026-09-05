@@ -18,6 +18,8 @@ export class ApiError extends Error {
   readonly fields: FieldError[];
   /** From the server's x-request-id header, so an error state can show it. */
   readonly requestId: string | null;
+  /** Which call failed, for the design's "500 from /api/tasks" line. */
+  readonly path: string;
 
   constructor(
     status: number,
@@ -25,6 +27,7 @@ export class ApiError extends Error {
     message: string,
     fields: FieldError[] = [],
     requestId: string | null = null,
+    path = "",
   ) {
     super(message);
     this.name = "ApiError";
@@ -32,6 +35,7 @@ export class ApiError extends Error {
     this.code = code;
     this.fields = fields;
     this.requestId = requestId;
+    this.path = path;
   }
 
   /** True when the server does not know who we are. */
@@ -87,6 +91,11 @@ export async function apiRequest<T>(
       0,
       "NETWORK_ERROR",
       "Could not reach the server. Check that it is running.",
+      [],
+      // Deliberately null. Nothing answered, so no server ever issued an id,
+      // and inventing one would make a debugging aid that points nowhere.
+      null,
+      path,
     );
   }
 
@@ -108,7 +117,11 @@ export async function apiRequest<T>(
       (serverError?.code as string) ?? "UNKNOWN",
       (serverError?.message as string) ?? "Something went wrong.",
       (serverError?.fields as FieldError[]) ?? [],
-      requestId,
+      // The header first, then the copy in the body. Belt and braces: a
+      // browser can be stopped from reading a custom header by CORS, and the
+      // body copy survives being pasted into a bug report.
+      requestId ?? ((serverError?.requestId as string) || null),
+      path,
     );
 
     if (apiError.isUnauthorized && !skipUnauthorizedHandler) {
