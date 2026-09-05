@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../features/auth/auth-context";
+import { useMyTasksActive } from "../hooks/useMyTasksActive";
+import { useMyOpenTaskCount } from "../hooks/useStats";
 import { cn } from "../lib/cn";
 import { Avatar } from "./ui/Avatar";
 import { Logo } from "./Logo";
@@ -9,10 +11,6 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-// The design draws a count badge beside "My Tasks". It is not drawn here,
-// because the real number comes from the API in V9 and AGENTS.md forbids
-// putting a number on screen that did not come from an API response. Listed as
-// a known difference in docs/notes/v6.md.
 const LINKS = [
   { to: "/dashboard", label: "Dashboard", icon: GridIcon },
   { to: "/tasks", label: "Tasks", icon: ListIcon },
@@ -22,6 +20,23 @@ const LINKS = [
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user } = useAuth();
+
+  // The count badge the design draws beside "My Tasks". V6 left it out because
+  // the number did not exist yet; this is it, from GET /api/users/stats.
+  //
+  // It counts what is NOT DONE, not everything assigned to you. Undefined while
+  // loading or on failure, and then no badge is drawn — a zero would be a claim
+  // that you have nothing left to do.
+  const myTasks = useMyOpenTaskCount();
+
+  // Shared with the mobile tab bar, so both menus agree about which item is lit.
+  const viewingMyTasks = useMyTasksActive();
+
+  const isActive = (to: string, routerSaysActive: boolean) => {
+    if (to === "/my-tasks") return viewingMyTasks;
+    if (to === "/tasks") return routerSaysActive && !viewingMyTasks;
+    return routerSaysActive;
+  };
 
   return (
     // 216px wide and never scrolls — section 3 of the design reference.
@@ -41,10 +56,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               <NavLink
                 to={to}
                 onClick={onNavigate}
-                className={({ isActive }) =>
+                className={({ isActive: routerSaysActive }) =>
                   cn(
                     "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors",
-                    isActive
+                    isActive(to, routerSaysActive)
                       // The selected link gets a light grey pill behind it.
                       ? "bg-line/60 font-medium text-ink"
                       : "text-muted hover:bg-line/40 hover:text-ink",
@@ -53,6 +68,20 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               >
                 <Icon />
                 <span className="flex-1">{label}</span>
+
+                {/* The badge and the row count on the list will differ, because
+                    the list shows all your tasks and the badge shows only the
+                    unfinished ones. Both numbers are in the label so nobody has
+                    to guess which is wrong — neither is. */}
+                {to === "/my-tasks" && myTasks !== undefined && (
+                  <span
+                    title={`${myTasks.open} of your ${myTasks.assigned} tasks are not done`}
+                    aria-label={`${myTasks.open} of your ${myTasks.assigned} tasks are not done`}
+                    className="rounded-md bg-line px-1.5 text-[11px] font-medium text-ink"
+                  >
+                    {myTasks.open}
+                  </span>
+                )}
               </NavLink>
             </li>
           ))}

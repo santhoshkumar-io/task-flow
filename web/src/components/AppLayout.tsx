@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { CreateTaskDrawer } from "../features/tasks/CreateTaskDrawer";
 import { CreateTaskContext } from "../features/tasks/create-task-context";
+import { useMyTasksActive } from "../hooks/useMyTasksActive";
 import { cn } from "../lib/cn";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -105,6 +106,9 @@ export function AppLayout() {
 function MobileTabBar({ onCreate }: { onCreate: () => void }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-line bg-surface md:hidden">
+      {/* Same override the sidebar uses: after /my-tasks redirects, the URL
+          says /tasks, so without this "Tasks" lights up while you are looking
+          at your own list and "My Tasks" stays grey. */}
       <TabLink to="/tasks" label="Tasks" />
 
       {/* Inert in V6 with a title saying why. Live now that V7 has built the
@@ -126,13 +130,21 @@ function MobileTabBar({ onCreate }: { onCreate: () => void }) {
 }
 
 function TabLink({ to, label }: { to: string; label: string }) {
+  const viewingMyTasks = useMyTasksActive();
+
+  const isActive = (routerSaysActive: boolean) => {
+    if (to === "/my-tasks") return viewingMyTasks;
+    if (to === "/tasks") return routerSaysActive && !viewingMyTasks;
+    return routerSaysActive;
+  };
+
   return (
     <NavLink
       to={to}
-      className={({ isActive }) =>
+      className={({ isActive: routerSaysActive }) =>
         cn(
           "px-4 text-xs font-medium transition-colors",
-          isActive ? "text-ink" : "text-muted",
+          isActive(routerSaysActive) ? "text-ink" : "text-muted",
         )
       }
     >

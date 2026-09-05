@@ -533,6 +533,12 @@ describe("GET /api/tasks — the list", () => {
   });
 });
 
+function startOfToday(): Date {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 describe("GET /api/tasks/stats", () => {
   it("is matched by a direct count of the collection", async () => {
     for (const status of ["todo", "todo", "in_progress", "done", "blocked"]) {
@@ -551,6 +557,12 @@ describe("GET /api/tasks/stats", () => {
       todo: await TaskModel.countDocuments({ status: "todo" }),
       inProgress: await TaskModel.countDocuments({ status: "in_progress" }),
       done: await TaskModel.countDocuments({ status: "done" }),
+      // Counted here the same way the service counts it: has a due date, that
+      // date is before the start of today, and it is not finished.
+      overdue: await TaskModel.countDocuments({
+        dueDate: { $ne: null, $lt: startOfToday() },
+        status: { $ne: "done" },
+      }),
     });
   });
 

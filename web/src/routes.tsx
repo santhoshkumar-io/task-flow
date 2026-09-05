@@ -1,10 +1,12 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute, PublicOnlyRoute } from "./features/auth/ProtectedRoute";
+import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MyTasksRedirect } from "./pages/MyTasksRedirect";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { TeamPage } from "./pages/TeamPage";
 import { TaskDetailPage } from "./pages/TaskDetailPage";
 import { TaskListPage } from "./pages/TaskListPage";
 
@@ -30,18 +32,9 @@ export const router = createBrowserRouter([
           { path: "/", element: <Navigate to="/tasks" replace /> },
           { path: "/tasks", element: <TaskListPage /> },
           { path: "/tasks/:id", element: <TaskDetailPage /> },
-          {
-            path: "/my-tasks",
-            element: <PlaceholderPage title="My Tasks" arrivesIn="V7" />,
-          },
-          {
-            path: "/dashboard",
-            element: <PlaceholderPage title="Dashboard" arrivesIn="V9" />,
-          },
-          {
-            path: "/team",
-            element: <PlaceholderPage title="Team" arrivesIn="V9" />,
-          },
+          { path: "/my-tasks", element: <MyTasksRedirect /> },
+          { path: "/dashboard", element: <DashboardPage /> },
+          { path: "/team", element: <TeamPage /> },
         ],
       },
     ],

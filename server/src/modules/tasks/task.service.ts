@@ -93,15 +93,20 @@ export async function list(query: ListTasksQuery): Promise<TaskPage> {
 }
 
 // The four numbers on the dashboard, from ONE pass over the collection rather
-// than four separate counts.
+// than four separate counts — plus `overdue`, which cannot come from the same
+// grouping because it asks about dates rather than statuses.
 export async function getStats(): Promise<{
   total: number;
   todo: number;
   inProgress: number;
   done: number;
+  overdue: number;
 }> {
-  const rows = await TaskModel.aggregate<{ _id: string; count: number }>([
-    { $group: { _id: "$status", count: { $sum: 1 } } },
+  const [rows, overdue] = await Promise.all([
+    TaskModel.aggregate<{ _id: string; count: number }>([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
+    countOverdue(),
   ]);
 
   const byStatus = new Map(rows.map((row) => [row._id, row.count]));
@@ -112,7 +117,35 @@ export async function getStats(): Promise<{
     todo: countOf("todo"),
     inProgress: countOf("in_progress"),
     done: countOf("done"),
+    overdue,
   };
+}
+
+/**
+ * Tasks that are past their due date and still not finished.
+ *
+ * Compared against the START OF TODAY rather than the current moment, so a task
+ * due today is not overdue. That is the same line createTaskSchema already
+ * draws for "Due date can't be in the past" — a task due at some point today
+ * still has today to be done in.
+ *
+ * `$ne: null` states the intent rather than fixing a bug. A task with no due
+ * date is stored as an explicit null, and null sorts before every date in
+ * MongoDB's ordering — but range operators are TYPE-BRACKETED, so `$lt: <date>`
+ * only ever matches values that are themselves dates, and the nulls are already
+ * excluded. Checked, not assumed: with six null rows in the collection, the
+ * query returns the same 3 with the guard and without it. It stays because
+ * "has a due date, and it has passed" is the rule this is meant to express, and
+ * a reader should not have to know about type bracketing to see that.
+ */
+async function countOverdue(): Promise<number> {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  return TaskModel.countDocuments({
+    dueDate: { $ne: null, $lt: startOfToday },
+    status: { $ne: "done" },
+  });
 }
 
 function buildFilter(query: ListTasksQuery): Record<string, unknown> {

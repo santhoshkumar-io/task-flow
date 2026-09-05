@@ -20,14 +20,22 @@ interface TaskTableProps {
   dimmed?: boolean;
   /** The signed-in person's id — only the creator sees Delete. */
   currentUserId?: string;
-  onEdit: (task: Task) => void;
-  onDelete: (task: Task) => void;
+  /**
+   * Off for the dashboard's Recent Tasks card, which is a summary rather than
+   * a place to act. One prop so the dashboard REUSES this table instead of
+   * copying it — if reuse needs a copy, the first version was not general
+   * enough.
+   */
+  showActions?: boolean;
+  onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
 }
 
 export function TaskTable({
   tasks,
   dimmed = false,
   currentUserId,
+  showActions = true,
   onEdit,
   onDelete,
 }: TaskTableProps) {
@@ -50,9 +58,11 @@ export function TaskTable({
             <Th>Assignee</Th>
             <Th>Created</Th>
             <Th>Updated</Th>
-            <Th className="w-12">
-              <span className="sr-only">Actions</span>
-            </Th>
+            {showActions && (
+              <Th className="w-12">
+                <span className="sr-only">Actions</span>
+              </Th>
+            )}
           </tr>
         </thead>
 
@@ -108,14 +118,16 @@ export function TaskTable({
                 </span>
               </Td>
 
-              <Td>
-                <TaskActionsMenu
-                  size="sm"
-                  onEdit={() => onEdit(task)}
-                  onDelete={() => onDelete(task)}
-                  canDelete={task.creatorId._id === currentUserId}
-                />
-              </Td>
+              {showActions && (
+                <Td>
+                  <TaskActionsMenu
+                    size="sm"
+                    onEdit={() => onEdit?.(task)}
+                    onDelete={() => onDelete?.(task)}
+                    canDelete={task.creatorId._id === currentUserId}
+                  />
+                </Td>
+              )}
             </tr>
           ))}
         </tbody>

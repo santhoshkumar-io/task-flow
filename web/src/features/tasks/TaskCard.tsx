@@ -16,13 +16,16 @@ import { TaskActionsMenu } from "./TaskActionsMenu";
 export function TaskCard({
   task,
   currentUserId,
+  showActions = true,
   onEdit,
   onDelete,
 }: {
   task: Task;
   currentUserId?: string;
-  onEdit: (task: Task) => void;
-  onDelete: (task: Task) => void;
+  /** Off on the dashboard, where the card is a summary rather than a control. */
+  showActions?: boolean;
+  onEdit?: (task: Task) => void;
+  onDelete?: (task: Task) => void;
 }) {
   const overdue = isOverdue(task.dueDate) && task.status !== "done";
 
@@ -33,16 +36,20 @@ export function TaskCard({
     >
       {/* The ⋯ in the corner, as section 4 draws. It stops its own clicks from
           reaching the card, which would otherwise open the task. */}
-      <div className="absolute top-3 right-3">
-        <TaskActionsMenu
-          size="sm"
-          onEdit={() => onEdit(task)}
-          onDelete={() => onDelete(task)}
-          canDelete={task.creatorId._id === currentUserId}
-        />
-      </div>
+      {showActions && (
+        <div className="absolute top-3 right-3">
+          <TaskActionsMenu
+            size="sm"
+            onEdit={() => onEdit?.(task)}
+            onDelete={() => onDelete?.(task)}
+            canDelete={task.creatorId._id === currentUserId}
+          />
+        </div>
+      )}
 
-      <p className="pr-10 font-medium text-ink">{task.title}</p>
+      <p className={cn("font-medium text-ink", showActions && "pr-10")}>
+        {task.title}
+      </p>
 
       <p className="mt-0.5 text-xs text-muted">
         {task.key}

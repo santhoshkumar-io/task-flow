@@ -106,6 +106,33 @@ export const ACTIVITY_TYPES = [
 
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
+/**
+ * The four dashboard counts, from GET /api/tasks/stats.
+ *
+ * `total` is every task. `todo + inProgress + done` is deliberately LESS than
+ * it, because in_review and blocked are real statuses with no card of their
+ * own. The card labels say which is which, so nothing claims otherwise.
+ */
+export interface TaskStats {
+  total: number;
+  todo: number;
+  inProgress: number;
+  done: number;
+  /** Past their due date and not Done. Never counts a task with no due date. */
+  overdue: number;
+}
+
+/** One person's numbers on the Team screen, from GET /api/users/stats. */
+export interface UserStats {
+  userId: string;
+  assigned: number;
+  /** Of those, the ones not yet Done — the number in the My Tasks badge. */
+  open: number;
+  created: number;
+  /** null when they have never changed anything — the screen says "Never". */
+  lastActiveAt: string | null;
+}
+
 export interface Activity {
   _id: string;
   taskId: string;
