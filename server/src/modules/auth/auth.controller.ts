@@ -11,7 +11,7 @@ export async function register(req: Request, res: Response) {
   const input = registerSchema.parse(req.body);
   const user = await authService.register(input);
 
-  setAuthCookie(res, signToken(user.id));
+  setAuthCookie(res, signToken(user.id), input.rememberMe);
 
   // toJSON on the model strips passwordHash, so this cannot leak it.
   res.status(201).json({ user });

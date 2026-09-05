@@ -12,6 +12,9 @@ export const registerSchema = z.object({
     // bcrypt only looks at the first 72 bytes of a password. Accepting more
     // would silently ignore the rest, so say no instead of pretending.
     .max(72, "Password must be 72 characters or fewer"),
+  // Same as login: registering signs you in, so the same choice applies.
+  // Defaults to true so a client that does not send it behaves as before.
+  rememberMe: z.boolean().default(true),
 });
 
 export const loginSchema = z.object({

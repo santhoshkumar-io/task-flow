@@ -228,3 +228,54 @@ describe("GET /api/users", () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe("Keep me signed in", () => {
+  // The checkbox on the login card has to mean something. Ticked, the browser
+  // keeps the pass for seven days. Unticked, it is a session cookie the browser
+  // throws away when it closes — which is what "no Max-Age" means.
+  it("gives a 7 day cookie when ticked", async () => {
+    await request(app).post("/api/auth/register").send(alice);
+
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({ email: alice.email, password: alice.password, rememberMe: true });
+
+    const cookie = cookieFor(response);
+    expect(cookie).toContain("Max-Age=604800");
+    expect(cookie).toContain("HttpOnly");
+  });
+
+  it("gives a cookie that dies with the browser when unticked", async () => {
+    await request(app).post("/api/auth/register").send(alice);
+
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({ email: alice.email, password: alice.password, rememberMe: false });
+
+    const cookie = cookieFor(response);
+    // No Max-Age and no Expires is exactly what makes it a session cookie.
+    expect(cookie).not.toContain("Max-Age");
+    expect(cookie).not.toContain("Expires");
+    // Still httpOnly — the security properties do not change with the choice.
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+  });
+
+  it("applies to register too, not only login", async () => {
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send({ ...alice, rememberMe: false });
+
+    expect(response.status).toBe(201);
+    expect(cookieFor(response)).not.toContain("Max-Age");
+  });
+
+  it("keeps you signed in for 7 days when the client says nothing", async () => {
+    // An older client, or curl, that does not send the field at all.
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send(alice);
+
+    expect(cookieFor(response)).toContain("Max-Age=604800");
+  });
+});
