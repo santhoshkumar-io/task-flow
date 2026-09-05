@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Toast, ToastProvider } from "../components/ui/Toast";
@@ -10,7 +11,9 @@ import { Pagination } from "../features/tasks/Pagination";
 import { TaskCard } from "../features/tasks/TaskCard";
 import { TaskTable } from "../features/tasks/TaskTable";
 import { TaskTableSkeleton } from "../features/tasks/TaskTableSkeleton";
+import { DeleteTaskFromList } from "../features/tasks/DeleteTaskFromList";
 import { useCreateTask } from "../features/tasks/create-task-context";
+import { useAuth } from "../features/auth/auth-context";
 import { useTaskFilters } from "../hooks/useTaskFilters";
 import { useTasks, useUsers } from "../hooks/useTasks";
 import type { Task } from "../types";
@@ -32,6 +35,8 @@ export function TaskListPage() {
   const tasks = useTasks(query);
   const users = useUsers();
   const { open: openCreate } = useCreateTask();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Mobile "Load more" keeps what is already on screen, so it has to remember
   // the pages before this one. `upToPage` records which page the stack was
@@ -59,6 +64,10 @@ export function TaskListPage() {
   // error it was raised for is remembered rather than a bare true/false.
   const [dismissedError, setDismissedError] = useState<unknown>(null);
   const showToast = tasks.isError && dismissedError !== tasks.error;
+
+  // Which task the ⋯ menu asked to delete. The whole task, not just its id,
+  // so the dialog can name it before its comment count has arrived.
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
 
   return (
     <ToastProvider>
@@ -107,6 +116,13 @@ export function TaskListPage() {
         title="Couldn't load tasks"
         description={tasks.isError ? messageOf(tasks.error) : undefined}
       />
+
+      {deleteTarget && (
+        <DeleteTaskFromList
+          task={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
     </ToastProvider>
   );
 
@@ -144,12 +160,27 @@ export function TaskListPage() {
         <div className="hidden md:block">
           {/* Dimmed, not replaced, while the next page loads — that is what
               keepPreviousData buys, and it is why paging does not flash. */}
-          <TaskTable tasks={pageItems} dimmed={tasks.isPlaceholderData} />
+          <TaskTable
+            tasks={pageItems}
+            dimmed={tasks.isPlaceholderData}
+            currentUserId={user?._id}
+            // Edit mode is a URL, so it survives a refresh and the back
+            // button undoes it — the same rule as the filters,
+            // docs/decisions/0010-filters-in-the-url.md.
+            onEdit={(task) => navigate(`/tasks/${task._id}?edit=1`)}
+            onDelete={setDeleteTarget}
+          />
         </div>
 
         <div className="space-y-3 p-4 md:hidden">
           {mobileItems.map((task) => (
-            <TaskCard key={task._id} task={task} />
+            <TaskCard
+              key={task._id}
+              task={task}
+              currentUserId={user?._id}
+              onEdit={(target) => navigate(`/tasks/${target._id}?edit=1`)}
+              onDelete={setDeleteTarget}
+            />
           ))}
         </div>
 

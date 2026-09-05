@@ -5,6 +5,7 @@ import { formatShortDate, isOverdue } from "../../lib/time";
 import type { Task } from "../../types";
 import { PriorityDot } from "./PriorityDot";
 import { StatusBadge } from "./StatusBadge";
+import { TaskActionsMenu } from "./TaskActionsMenu";
 
 // Below 768px the table becomes a stack of these — section 8.9.
 //
@@ -12,15 +13,36 @@ import { StatusBadge } from "./StatusBadge";
 // "TF-118 · due Aug 29", then the status pill and priority dot on one row with
 // the assignee pushed right.
 
-export function TaskCard({ task }: { task: Task }) {
+export function TaskCard({
+  task,
+  currentUserId,
+  onEdit,
+  onDelete,
+}: {
+  task: Task;
+  currentUserId?: string;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
+}) {
   const overdue = isOverdue(task.dueDate) && task.status !== "done";
 
   return (
     <Link
       to={`/tasks/${task._id}`}
-      className="block rounded-lg border border-line bg-white p-4 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 active:bg-surface"
+      className="relative block rounded-lg border border-line bg-white p-4 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 active:bg-surface"
     >
-      <p className="font-medium text-ink">{task.title}</p>
+      {/* The ⋯ in the corner, as section 4 draws. It stops its own clicks from
+          reaching the card, which would otherwise open the task. */}
+      <div className="absolute top-3 right-3">
+        <TaskActionsMenu
+          size="sm"
+          onEdit={() => onEdit(task)}
+          onDelete={() => onDelete(task)}
+          canDelete={task.creatorId._id === currentUserId}
+        />
+      </div>
+
+      <p className="pr-10 font-medium text-ink">{task.title}</p>
 
       <p className="mt-0.5 text-xs text-muted">
         {task.key}

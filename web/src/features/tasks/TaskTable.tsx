@@ -5,22 +5,32 @@ import { formatFullDate, formatRelative, formatShortDate } from "../../lib/time"
 import type { Task } from "../../types";
 import { PriorityDot } from "./PriorityDot";
 import { StatusBadge } from "./StatusBadge";
+import { TaskActionsMenu } from "./TaskActionsMenu";
 
-// Six columns, not the seven in section 4.
+// Seven columns, as section 4 draws.
 //
-// The seventh is Actions — a ⋯ opening Edit / Duplicate / Delete. All three
-// arrive in V8, and Duplicate is on the plan's exclusion list, so drawing the
-// button now would be a visible control that silently does nothing, which
-// AGENTS.md calls the worst of the three options. Instead the whole row is a
-// link to the detail screen. Listed in docs/notes/v7.md as a difference.
+// V7 shipped six: the Actions ⋯ was left out because Edit and Delete did not
+// exist yet and Duplicate is on the exclusion list, so the button would have
+// been a control that silently does nothing. V8 gives it two real items and it
+// comes back, closing that deviation. Duplicate stays out.
 
 interface TaskTableProps {
   tasks: Task[];
   /** True while the NEXT page is loading and this one is still on screen. */
   dimmed?: boolean;
+  /** The signed-in person's id — only the creator sees Delete. */
+  currentUserId?: string;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
 }
 
-export function TaskTable({ tasks, dimmed = false }: TaskTableProps) {
+export function TaskTable({
+  tasks,
+  dimmed = false,
+  currentUserId,
+  onEdit,
+  onDelete,
+}: TaskTableProps) {
   return (
     // Between 768 and 1023px the table keeps a horizontal scroll rather than
     // squashing — section 8.9. The scroll is on this box, so the page itself
@@ -40,6 +50,9 @@ export function TaskTable({ tasks, dimmed = false }: TaskTableProps) {
             <Th>Assignee</Th>
             <Th>Created</Th>
             <Th>Updated</Th>
+            <Th className="w-12">
+              <span className="sr-only">Actions</span>
+            </Th>
           </tr>
         </thead>
 
@@ -93,6 +106,15 @@ export function TaskTable({ tasks, dimmed = false }: TaskTableProps) {
                 <span title={formatFullDate(task.updatedAt)}>
                   {formatRelative(task.updatedAt)}
                 </span>
+              </Td>
+
+              <Td>
+                <TaskActionsMenu
+                  size="sm"
+                  onEdit={() => onEdit(task)}
+                  onDelete={() => onDelete(task)}
+                  canDelete={task.creatorId._id === currentUserId}
+                />
               </Td>
             </tr>
           ))}

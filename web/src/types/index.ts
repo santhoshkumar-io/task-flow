@@ -83,3 +83,37 @@ export interface TaskPage {
   /** True when more pages exist — what the mobile "Load more" button reads. */
   hasMore: boolean;
 }
+
+export interface Comment {
+  _id: string;
+  taskId: string;
+  authorId: PersonRef;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// The kinds of change the server records. Title and description edits are
+// deliberately NOT here — the server only writes a row for these three. That
+// gap is why the detail header can only name who last touched a task when the
+// newest row lines up with updatedAt; see docs/notes/v8.md.
+export const ACTIVITY_TYPES = [
+  "created",
+  "status_changed",
+  "priority_changed",
+  "assignee_changed",
+] as const;
+
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+
+export interface Activity {
+  _id: string;
+  taskId: string;
+  actorId: PersonRef;
+  type: ActivityType;
+  /** Plain text, because one row must describe "todo → done" and
+      "unassigned → Sarah Chen" equally well. null means no previous value. */
+  from: string | null;
+  to: string | null;
+  createdAt: string;
+}

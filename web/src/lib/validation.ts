@@ -60,3 +60,52 @@ export const createTaskSchema = z.object({
 });
 
 export type CreateTaskValues = z.infer<typeof createTaskSchema>;
+
+// The edit form. Same fields as create, plus a due date.
+//
+// The past-date rule is NOT here, and that is deliberate on both sides. The
+// server dropped it from updateTaskSchema so an already-overdue task can still
+// be moved to Done; putting it back here would make every overdue task
+// permanently uneditable — the form would be invalid the moment it loaded.
+//
+// The form checks it only when the date field has actually been CHANGED, which
+// is a question about the edit rather than about the value. See
+// isPastDueDate below and TaskEditForm.
+export const editTaskSchema = createTaskSchema.extend({
+  /** "" means no due date. An <input type="date"> gives "" when cleared. */
+  dueDate: z.string(),
+});
+
+export type EditTaskValues = z.infer<typeof editTaskSchema>;
+
+/**
+ * True when a date string is before the start of today.
+ *
+ * Compared against the START of today, not this moment, so a task due today is
+ * never "in the past" — the same rule the server applies on create.
+ */
+export function isPastDueDate(value: string): boolean {
+  if (!value) return false;
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  return new Date(`${value}T00:00:00`) < startOfToday;
+}
+
+/** The design's exact wording, from section 6. */
+export const PAST_DUE_DATE_MESSAGE = "Due date can't be in the past.";
+
+export const COMMENT_LIMIT = 2000;
+
+// Mirrors server/src/modules/comments/comment.schema.ts, wording included, so
+// an empty comment is refused with the same sentence on both sides.
+export const commentSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Comment can't be empty")
+    .max(COMMENT_LIMIT, `Comment must be ${COMMENT_LIMIT} characters or fewer`),
+});
+
+export type CommentValues = z.infer<typeof commentSchema>;

@@ -76,3 +76,48 @@ export async function createTask(payload: CreateTaskPayload): Promise<Task> {
   const { task } = await api.post<{ task: Task }>("/tasks", payload);
   return task;
 }
+
+/**
+ * One task, plus how many comments it has.
+ *
+ * The count comes back with the task rather than from a separate request
+ * because the delete dialog has to name a real number — *"and its 4 comments
+ * will be permanently removed"*. V5 added it to this route for exactly that.
+ */
+export interface TaskDetail {
+  task: Task;
+  commentCount: number;
+}
+
+export function getTask(id: string, signal?: AbortSignal): Promise<TaskDetail> {
+  return api.get<TaskDetail>(`/tasks/${id}`, { signal });
+}
+
+/**
+ * Every field is optional: PATCH means "change these", not "replace the whole
+ * record". Sending only what changed is what stops one person's save wiping a
+ * field somebody else edited a second earlier.
+ */
+export interface UpdateTaskPayload {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assigneeId?: string | null;
+  dueDate?: string | null;
+}
+
+export async function updateTask(
+  id: string,
+  payload: UpdateTaskPayload,
+): Promise<Task> {
+  const { task } = await api.patch<{ task: Task }>(`/tasks/${id}`, payload);
+  return task;
+}
+
+// 204 with no body. Only the creator may do this; for anyone else the server
+// answers 404 rather than 403, so probing ids tells an attacker nothing.
+// See docs/decisions/0006-anyone-edits-creator-deletes.md.
+export function deleteTask(id: string): Promise<void> {
+  return api.delete<void>(`/tasks/${id}`);
+}
