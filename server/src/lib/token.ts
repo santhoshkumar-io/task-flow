@@ -8,6 +8,15 @@ import { env } from "../config/env.js";
 
 export interface TokenPayload {
   sub: string;
+  /**
+   * When this pass was issued, in seconds. Put there by jsonwebtoken itself.
+   *
+   * requireAuth compares it against the user's passwordChangedAt, which is how
+   * a password reset can sign out sessions that were handed out earlier. A
+   * signed pass cannot be recalled — the only thing that can be done is to stop
+   * honouring it.
+   */
+  iat: number;
 }
 
 export function signToken(userId: string): string {
@@ -22,10 +31,14 @@ export function signToken(userId: string): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET);
-    if (typeof decoded === "string" || typeof decoded.sub !== "string") {
+    if (
+      typeof decoded === "string" ||
+      typeof decoded.sub !== "string" ||
+      typeof decoded.iat !== "number"
+    ) {
       return null;
     }
-    return { sub: decoded.sub };
+    return { sub: decoded.sub, iat: decoded.iat };
   } catch {
     return null;
   }

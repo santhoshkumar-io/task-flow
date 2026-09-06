@@ -405,3 +405,96 @@ describe("the activity trail", () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe("PATCH and DELETE /api/tasks/:taskId/comments/:commentId", () => {
+  /** Posts a comment and hands back its id. */
+  async function commentId(body: string, cookie = cookieA) {
+    const response = await postComment(body, cookie);
+    return response.body.comment._id as string;
+  }
+
+  it("lets the author edit their own comment", async () => {
+    const id = await commentId("First thought");
+
+    const response = await request(app)
+      .patch(`/api/tasks/${taskId}/comments/${id}`)
+      .set("Cookie", cookieA)
+      .send({ body: "Second thought" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.comment.body).toBe("Second thought");
+    // Still the author's own name on it — editing does not reassign it.
+    expect(response.body.comment.authorId.name).toBe(userA.name);
+  });
+
+  it("answers 404, not 403, when it is somebody else's comment", async () => {
+    const id = await commentId("Alice wrote this");
+
+    const response = await request(app)
+      .patch(`/api/tasks/${taskId}/comments/${id}`)
+      .set("Cookie", cookieB)
+      .send({ body: "Ben rewriting it" });
+
+    // 404 rather than 403, for the same reason deleting somebody else's task
+    // does: a 403 would confirm the comment exists. See docs/decisions/0006.
+    expect(response.status).toBe(404);
+
+    // And nothing changed.
+    const after = await request(app)
+      .get(`/api/tasks/${taskId}/comments`)
+      .set("Cookie", cookieA);
+    expect(after.body.comments[0].body).toBe("Alice wrote this");
+  });
+
+  it("lets the author delete their own comment", async () => {
+    const id = await commentId("Never mind");
+
+    const response = await request(app)
+      .delete(`/api/tasks/${taskId}/comments/${id}`)
+      .set("Cookie", cookieA);
+
+    expect(response.status).toBe(204);
+    expect(await CommentModel.countDocuments({})).toBe(0);
+  });
+
+  it("answers 404 when deleting somebody else's comment, and keeps it", async () => {
+    const id = await commentId("Alice wrote this");
+
+    const response = await request(app)
+      .delete(`/api/tasks/${taskId}/comments/${id}`)
+      .set("Cookie", cookieB);
+
+    expect(response.status).toBe(404);
+    expect(await CommentModel.countDocuments({})).toBe(1);
+  });
+
+  it("will not reach a comment through a different task's URL", async () => {
+    const id = await commentId("Belongs to the first task");
+
+    const other = await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "A second task" });
+
+    // The taskId is part of the lookup, so a real comment id under the wrong
+    // task matches nothing at all.
+    const response = await request(app)
+      .patch(`/api/tasks/${other.body.task._id}/comments/${id}`)
+      .set("Cookie", cookieA)
+      .send({ body: "Moved?" });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("applies the same body rules as posting", async () => {
+    const id = await commentId("Fine");
+
+    const response = await request(app)
+      .patch(`/api/tasks/${taskId}/comments/${id}`)
+      .set("Cookie", cookieA)
+      .send({ body: "   " });
+
+    // An edit must not be a way past the rule that a comment has content.
+    expect(response.status).toBe(400);
+  });
+});

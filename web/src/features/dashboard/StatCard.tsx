@@ -1,48 +1,30 @@
+import { TrendingDown, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "../../components/ui/Card";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { cn } from "../../lib/cn";
 
-// Label, big number, icon in the corner. Nothing under the number.
+// Label, big number, a second line, and a category icon in the corner.
 //
-// The design draws a TREND there — "+12% since last week" — and V9 step 1 asks
-// for one. There is nothing to compute it from: no snapshot of yesterday's
-// counts exists, and the activity trail holds no status changes at all.
-//
-// A second line carrying a real figure instead — a share of the total, an
-// overdue count — was built and then taken back out in review. The card is the
-// label, the number and the icon.
-// See docs/decisions/0015-stat-cards-without-a-trend-line.md.
-//
-// The icon is a plain category icon — a list, a clock, a tick — and never an
-// up-arrow. An arrow pointing up is itself a claim about a direction that
-// nothing here has measured.
+// THE SECOND LINE HAS A SOURCE OR IT IS NOT DRAWN. V9 removed it because the
+// database held no history at all — 25 tasks created in the same second and not
+// one status change — so every version of it would have been invented. The seed
+// now carries four weeks of real movement, so each line is a query.
+// See docs/decisions/0022-dashboard-cards-match-the-design.md.
 
 interface StatCardProps {
   label: string;
   /** Undefined until the API answers. Nothing is drawn before then. */
   value: number | undefined;
   icon: ReactNode;
-  tone?: "neutral" | "accent" | "warning" | "success";
+  /** The small line under the number. Undefined draws nothing. */
+  hint?: ReactNode;
   /** When set, the whole card is a link to that filtered task list. */
   to?: string;
 }
 
-const TONES = {
-  neutral: "bg-status-todo-bg text-muted",
-  accent: "bg-status-progress-bg text-accent",
-  warning: "bg-status-review-bg text-warning",
-  success: "bg-status-done-bg text-success",
-} as const;
-
-export function StatCard({
-  label,
-  value,
-  icon,
-  tone = "neutral",
-  to,
-}: StatCardProps) {
+export function StatCard({ label, value, icon, hint, to }: StatCardProps) {
   const card = (
     <Card
       padding="sm"
@@ -56,13 +38,10 @@ export function StatCard({
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-medium text-muted">{label}</p>
-        <span
-          aria-hidden="true"
-          className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-lg",
-            TONES[tone],
-          )}
-        >
+        {/* Bare, as the design draws it — no tinted tile behind it. The tile
+            also carried the only status colour on these cards; without it the
+            four icons read as one row of headings rather than four moods. */}
+        <span aria-hidden="true" className="shrink-0 text-ink">
           {icon}
         </span>
       </div>
@@ -77,6 +56,15 @@ export function StatCard({
           {value}
         </p>
       )}
+
+      {/* The hint follows the same rule as the number: a grey block while the
+          answer is in flight, never a guess at what it will say. */}
+      {hint !== undefined &&
+        (value === undefined ? (
+          <Skeleton className="mt-2 h-3 w-28" />
+        ) : (
+          <div className="mt-2 text-xs">{hint}</div>
+        ))}
     </Card>
   );
 
@@ -97,40 +85,91 @@ export function StatCard({
   );
 }
 
-const ICON = "size-4 fill-none stroke-current stroke-[1.5]";
+/**
+ * The design's "+8% vs last week".
+ *
+ * Drawn ONLY when the previous period had something in it. A rise from zero is
+ * not a percentage — it is a division by zero wearing a plus sign — and the
+ * oldest week in the data can legitimately be empty. In that case the card
+ * falls back to the plain count, which is still true.
+ */
+export function Trend({
+  current,
+  previous,
+  fallback,
+}: {
+  current: number | undefined;
+  previous: number | undefined;
+  fallback: string;
+}) {
+  if (current === undefined || previous === undefined) return null;
 
-export function StackIcon() {
+  if (previous === 0) {
+    return <span className="text-muted">{fallback}</span>;
+  }
+
+  const change = Math.round(((current - previous) / previous) * 100);
+  const up = change >= 0;
+  const Arrow = up ? TrendingUp : TrendingDown;
+
+  // Only the figure carries the colour; "vs last week" stays muted, as the
+  // design draws it. Colouring the whole sentence red makes the words look like
+  // part of the warning rather than the period being compared.
   return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 2 2 5l6 3 6-3z" />
-      <path d="M2 8.5 8 11.5l6-3M2 11.5 8 14.5l6-3" />
-    </svg>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1",
+        up ? "text-success" : "text-destructive",
+      )}
+    >
+      <Arrow className="size-4" aria-hidden="true" />
+      <span>
+        <span className="font-medium">
+          {up ? "+" : ""}
+          {change}%
+        </span>{" "}
+        <span className="text-muted">vs last week</span>
+      </span>
+    </span>
   );
 }
 
-export function InboxIcon() {
+/**
+ * The design's "+5 this week" — a count that went UP over a period, drawn green
+ * with a rising arrow.
+ *
+ * Zero is drawn muted and without the arrow. "+0 this week" in green under a
+ * rising arrow would claim something improved when nothing did.
+ */
+export function Gain({
+  value,
+  suffix,
+}: {
+  value: number | undefined;
+  suffix: string;
+}) {
+  if (value === undefined) return null;
+
+  if (value === 0) {
+    return (
+      <span className="text-muted">
+        +0 {suffix}
+      </span>
+    );
+  }
+
   return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="12" height="10" rx="1.5" />
-      <path d="M2 9.5h3l1 1.5h4l1-1.5h3" />
-    </svg>
+    <span className="inline-flex items-center gap-1 text-success">
+      <TrendingUp className="size-4" aria-hidden="true" />
+      <span>
+        <span className="font-medium">+{value}</span>{" "}
+        <span className="text-muted">{suffix}</span>
+      </span>
+    </span>
   );
 }
 
-export function ClockIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M8 4.5V8l2.5 1.5" />
-    </svg>
-  );
-}
-
-export function TickIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="6" />
-      <path d="m5.5 8 1.8 1.8L10.5 6.5" />
-    </svg>
-  );
+/** A plain count with wording around it. Muted, because it claims no direction. */
+export function Note({ children }: { children: ReactNode }) {
+  return <span className="text-muted">{children}</span>;
 }

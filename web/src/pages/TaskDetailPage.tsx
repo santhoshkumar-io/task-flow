@@ -12,6 +12,7 @@ import { TaskDetailSkeleton } from "../features/tasks/TaskDetailSkeleton";
 import { TaskEditForm } from "../features/tasks/TaskEditForm";
 import { TaskHeader } from "../features/tasks/TaskHeader";
 import { TaskInfoCard } from "../features/tasks/TaskInfoCard";
+import { useDuplicateTask } from "../hooks/useDuplicateTask";
 import { useAuth } from "../features/auth/auth-context";
 import {
   useActivity,
@@ -26,6 +27,7 @@ import { useUsers } from "../hooks/useTasks";
 export function TaskDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const duplicate = useDuplicateTask();
   const { user } = useAuth();
 
   const detail = useTask(id);
@@ -101,12 +103,9 @@ export function TaskDetailPage() {
             <span aria-hidden="true">←</span> Back to tasks
           </Link>
 
-          <div className="mt-4 mb-6">
-            <p className="text-xs text-muted">{task.key}</p>
-            <h1 className="mt-1 font-heading text-2xl font-bold tracking-[-0.02em] text-ink">
-              Edit task
-            </h1>
-          </div>
+          {/* The key and heading are drawn by TaskEditForm now, alongside the
+              Cancel and Save buttons the design puts on the same row. */}
+          <div className="mt-4" />
 
           <TaskEditForm
             task={task}
@@ -136,7 +135,8 @@ export function TaskDetailPage() {
                 task={task}
                 activity={activity.data ?? []}
                 canDelete={canDelete}
-                onEdit={() => setEditing(true)}
+                onDuplicate={() => duplicate.mutate(task)}
+            onEdit={() => setEditing(true)}
                 onDelete={() => setConfirmingDelete(true)}
               />
 
@@ -176,7 +176,7 @@ export function TaskDetailPage() {
                     retrying={comments.isFetching}
                   />
                 ) : (
-                  <CommentList comments={comments.data} />
+                  <CommentList comments={comments.data} taskId={id} />
                 )}
 
                 <CommentForm

@@ -5,7 +5,7 @@ import { ActivityModel, type ActivityType } from "../../models/activity.model.js
 import { CommentModel } from "../../models/comment.model.js";
 import { nextTaskKey } from "../../models/counter.model.js";
 import { TaskModel, type TaskDocument } from "../../models/task.model.js";
-import { UserModel } from "../../models/user.model.js";
+import { UserModel, type UserRole } from "../../models/user.model.js";
 import type {
   CreateTaskInput,
   ListTasksQuery,
@@ -92,21 +92,64 @@ export async function list(query: ListTasksQuery): Promise<TaskPage> {
   };
 }
 
-// The four numbers on the dashboard, from ONE pass over the collection rather
-// than four separate counts — plus `overdue`, which cannot come from the same
-// grouping because it asks about dates rather than statuses.
-export async function getStats(): Promise<{
+// The dashboard's numbers.
+//
+// The four counts come from ONE pass over the collection rather than four
+// separate queries. Everything after them answers a question about TIME, which
+// a group-by-status cannot: how much arrived this week, how much is due, how
+// much actually got finished.
+export interface TaskStats {
   total: number;
   todo: number;
   inProgress: number;
   done: number;
   overdue: number;
-}> {
-  const [rows, overdue] = await Promise.all([
+  /** Tasks created in the last 7 days, and in the 7 before that. */
+  createdThisWeek: number;
+  createdLastWeek: number;
+  /** Not done, with a due date inside the next 7 days. */
+  dueThisWeek: number;
+  /** Moved INTO done in the last 7 days, read from the activity trail. */
+  completedThisWeek: number;
+}
+
+export async function getStats(): Promise<TaskStats> {
+  const now = Date.now();
+  const weekAgo = new Date(now - 7 * 864e5);
+  const twoWeeksAgo = new Date(now - 14 * 864e5);
+  const weekAhead = new Date(now + 7 * 864e5);
+
+  const [
+    rows,
+    overdue,
+    createdThisWeek,
+    createdLastWeek,
+    dueThisWeek,
+    completedThisWeek,
+  ] = await Promise.all([
     TaskModel.aggregate<{ _id: string; count: number }>([
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
     countOverdue(),
+
+    TaskModel.countDocuments({ createdAt: { $gte: weekAgo } }),
+    TaskModel.countDocuments({ createdAt: { $gte: twoWeeksAgo, $lt: weekAgo } }),
+
+    // From now rather than the start of today: something due later today is
+    // still due this week, and something due yesterday is overdue, not upcoming.
+    TaskModel.countDocuments({
+      dueDate: { $ne: null, $gte: new Date(), $lt: weekAhead },
+      status: { $ne: "done" },
+    }),
+
+    // NOT a count of tasks whose status is done — that would be the same number
+    // every week. This asks the activity trail how many were MOVED to done
+    // recently, which is the only place that question has an answer.
+    ActivityModel.countDocuments({
+      type: "status_changed",
+      to: "done",
+      createdAt: { $gte: weekAgo },
+    }),
   ]);
 
   const byStatus = new Map(rows.map((row) => [row._id, row.count]));
@@ -118,6 +161,10 @@ export async function getStats(): Promise<{
     inProgress: countOf("in_progress"),
     done: countOf("done"),
     overdue,
+    createdThisWeek,
+    createdLastWeek,
+    dueThisWeek,
+    completedThisWeek,
   };
 }
 
@@ -295,13 +342,28 @@ function idAsText(id: Types.ObjectId | null | undefined): string | null {
 // Only the creator may delete, and someone else's task answers 404 rather than
 // 403. A 403 would confirm the id exists, which lets an attacker map real ids
 // by probing. 404 tells them nothing either way.
+/**
+ * Delete a task. The creator may, and so may an admin.
+ *
+ * The admin half is new: docs/decisions/0006 said creator-only, and 0021 amends
+ * it. That amendment is the whole reason roles were built — a Role column whose
+ * value changes no behaviour is decoration, which is exactly what 0014 refused
+ * to draw.
+ *
+ * Still a 404 rather than a 403 for anybody else, so probing ids tells a
+ * stranger nothing about which tasks exist.
+ */
 export async function remove(
   id: string,
   requesterId: Types.ObjectId,
+  requesterRole: UserRole,
 ): Promise<void> {
   const task = await TaskModel.findById(id);
 
-  if (!task || !task.creatorId.equals(requesterId)) {
+  const allowed =
+    task && (task.creatorId.equals(requesterId) || requesterRole === "admin");
+
+  if (!allowed) {
     throw AppError.notFound("Task not found");
   }
 

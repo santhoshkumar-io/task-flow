@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { ApiError } from "../../api/client";
 import type { UpdateTaskPayload } from "../../api/tasks.api";
+import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
@@ -100,7 +101,34 @@ export function TaskEditForm({
   });
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-6 lg:flex-row">
+    <form onSubmit={submit}>
+      {/* Cancel and Save sit at the top right, where the design puts them.
+          They live inside the <form> rather than in the page above it so the
+          submit button can read isValid and the change list directly — lifting
+          that state into the page would mean two copies of the same truth. */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted">{task.key}</p>
+          <h1 className="mt-1 font-heading text-2xl font-bold tracking-[-0.02em] text-ink">
+            Edit task
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={blocked || changes.length === 0}
+            loading={saving}
+          >
+            Save Changes
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1 space-y-5">
         {formError(error) && (
           <p
@@ -206,6 +234,7 @@ export function TaskEditForm({
         />
 
         {canDelete && <DangerZone onDelete={onDelete} />}
+      </div>
       </div>
     </form>
   );

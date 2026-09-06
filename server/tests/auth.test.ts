@@ -176,7 +176,7 @@ describe("GET /api/users", () => {
     expect(response.body.error.code).toBe("UNAUTHORIZED");
   });
 
-  it("returns id, name and email only when logged in", async () => {
+  it("returns a named list of fields and never the password hash", async () => {
     const registered = await request(app)
       .post("/api/auth/register")
       .send(alice);
@@ -187,11 +187,20 @@ describe("GET /api/users", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.users).toHaveLength(1);
+    // An EXACT list, not a check that the hash is absent. The route selects
+    // named fields rather than "everything except the hash", and this is what
+    // makes that promise enforceable: anything new on the model shows up here
+    // as a failing test rather than quietly on the wire.
     expect(Object.keys(response.body.users[0]).sort()).toEqual([
       "_id",
+      "createdAt",
       "email",
       "name",
+      "role",
+      "status",
     ]);
+
+    expect(response.body.users[0].passwordHash).toBeUndefined();
   });
 
   it("is 401 when one character of a real pass is changed, not 500", async () => {

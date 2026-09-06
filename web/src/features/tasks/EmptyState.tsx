@@ -1,3 +1,4 @@
+import { ClipboardList, SearchX } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 
 // TWO empty states, not one.
@@ -52,37 +53,12 @@ export function EmptyState({
 
 function Magnifier() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="11" cy="11" r="6" />
-      <path d="m20 20-4.5-4.5" />
-    </svg>
+    <SearchX className="size-8" aria-hidden="true" />
   );
 }
 
 function ClipboardIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9 4h6v3H9z" />
-      <path d="M9 5.5H7a1 1 0 0 0-1 1V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-2" />
-      <path d="M9 12h6M9 16h4" />
-    </svg>
+    <ClipboardList className="size-8" aria-hidden="true" />
   );
 }

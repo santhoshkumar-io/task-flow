@@ -1,3 +1,4 @@
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Card } from "../../components/ui/Card";
 import { Logo } from "../../components/Logo";
@@ -7,8 +8,13 @@ interface AuthCardProps {
   subtitle: string;
   /** A whole-form error from the server, such as "Invalid email or password". */
   formError?: string | null;
+  /** Good news, such as "your password has been changed". Green, not red. */
+  notice?: string | null;
   children: ReactNode;
+  /** The "Don't have an account?" line. Sits INSIDE the card, under the form. */
   footer: ReactNode;
+  /** The small grey line below the footer. Login only. */
+  legal?: ReactNode;
 }
 
 // The centred card from the design's login frame.
@@ -20,8 +26,10 @@ export function AuthCard({
   title,
   subtitle,
   formError,
+  notice,
   children,
   footer,
+  legal,
 }: AuthCardProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
@@ -45,21 +53,34 @@ export function AuthCard({
               role="alert"
               className="mb-5 flex items-start gap-2 rounded-lg border border-destructive/20 bg-status-blocked-bg px-3 py-2.5 text-sm text-destructive"
             >
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                className="mt-0.5 size-3.5 shrink-0 fill-current"
-              >
-                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               {formError}
             </div>
           )}
 
+          {notice && !formError && (
+            // role="status" rather than "alert": this is worth announcing but
+            // is not urgent, so it does not interrupt whatever is being read.
+            <div
+              role="status"
+              className="mb-5 flex items-start gap-2 rounded-lg border border-success/20 bg-status-done-bg px-3 py-2.5 text-sm text-success"
+            >
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {notice}
+            </div>
+          )}
+
           {children}
+
+          {/* Inside the card, under the button, as the design draws it. It was
+              below the card, which pushed it away from the form it belongs to
+              and left the card ending on a black button. */}
+          <p className="mt-6 text-center text-sm text-muted">{footer}</p>
         </Card>
 
-        <p className="mt-6 text-center text-sm text-muted">{footer}</p>
+        {legal && (
+          <p className="mt-6 text-center text-xs text-muted">{legal}</p>
+        )}
       </div>
     </main>
   );

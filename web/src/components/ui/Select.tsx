@@ -1,3 +1,4 @@
+import { Check, ChevronDown } from "lucide-react";
 import * as RadixSelect from "@radix-ui/react-select";
 import { cn } from "../../lib/cn";
 
@@ -76,7 +77,7 @@ export function Select({
           )}
         </span>
         <RadixSelect.Icon>
-          <ChevronDown />
+          <ChevronDown className="size-5 shrink-0 text-muted" aria-hidden="true" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
 
@@ -105,7 +106,7 @@ export function Select({
                 <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
                 {/* The tick beside the selected option — drawn in section 5. */}
                 <RadixSelect.ItemIndicator className="absolute right-2 inline-flex">
-                  <Check />
+                  <Check className="size-5" aria-hidden="true" />
                 </RadixSelect.ItemIndicator>
               </RadixSelect.Item>
             ))}
@@ -116,36 +117,3 @@ export function Select({
   );
 }
 
-function ChevronDown() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-      className="size-4 shrink-0 text-muted"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m4 6 4 4 4-4" />
-    </svg>
-  );
-}
-
-function Check() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-      className="size-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m3.5 8.5 3 3 6-7" />
-    </svg>
-  );
-}

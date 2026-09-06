@@ -43,11 +43,14 @@ const HISTORY_DAYS = 28;
 // activity row anywhere. The Team screen has to show her with real zeros and
 // the word Never, and until now that case depended on an account registered by
 // hand during testing — which meant it vanished every time the seed ran.
+// Roles are seeded across the four so the Team screen shows a spread rather
+// than one value repeated. Sarah is the admin, which is what makes "an admin
+// may delete anybody's task" demonstrable from a real account.
 const demoUsers = [
-  { name: "Sarah Chen", email: "sarah@taskflow.dev" },
-  { name: "Marcus Reid", email: "marcus@taskflow.dev" },
-  { name: "Priya Nair", email: "priya@taskflow.dev" },
-  { name: "Nina Alvarez", email: "nina@taskflow.dev" },
+  { name: "Sarah Chen", email: "sarah@taskflow.dev", role: "admin" as const },
+  { name: "Marcus Reid", email: "marcus@taskflow.dev", role: "engineer" as const },
+  { name: "Priya Nair", email: "priya@taskflow.dev", role: "designer" as const },
+  { name: "Nina Alvarez", email: "nina@taskflow.dev", role: "product_manager" as const },
 ];
 
 /** The three who actually touch tasks — index 3 is never given anything. */

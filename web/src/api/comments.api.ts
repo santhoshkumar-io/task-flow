@@ -2,9 +2,11 @@ import type { Activity, Comment } from "../types";
 import { api } from "./client";
 
 // A comment belongs to a task, and the URL says so:
-//   GET  /api/tasks/:taskId/comments
-//   POST /api/tasks/:taskId/comments
-//   GET  /api/tasks/:taskId/activity
+//   GET    /api/tasks/:taskId/comments
+//   POST   /api/tasks/:taskId/comments
+//   PATCH  /api/tasks/:taskId/comments/:commentId
+//   DELETE /api/tasks/:taskId/comments/:commentId
+//   GET    /api/tasks/:taskId/activity
 
 /** Oldest first — the server sorts them, because a conversation reads down. */
 export async function listComments(
@@ -41,4 +43,31 @@ export async function listActivity(
     { signal },
   );
   return activity;
+}
+
+/**
+ * Edit a comment. Author only — the server answers 404 to anybody else, not
+ * 403, so a wrong id tells a stranger nothing. See docs/decisions/0006.
+ *
+ * The taskId is in the path, so a comment id borrowed from another task will
+ * not match and cannot be edited through this one.
+ */
+export async function updateComment(
+  taskId: string,
+  commentId: string,
+  body: string,
+): Promise<Comment> {
+  const { comment } = await api.patch<{ comment: Comment }>(
+    `/tasks/${taskId}/comments/${commentId}`,
+    { body },
+  );
+  return comment;
+}
+
+/** Delete a comment. Author only, and the same 404 for everybody else. */
+export function deleteComment(
+  taskId: string,
+  commentId: string,
+): Promise<void> {
+  return api.delete<void>(`/tasks/${taskId}/comments/${commentId}`);
 }

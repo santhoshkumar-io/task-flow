@@ -305,6 +305,15 @@ describe("GET /api/tasks/stats", () => {
       inProgress: 1,
       done: 1,
       overdue: 0,
+      // All five were created in this test, seconds ago.
+      createdThisWeek: 5,
+      createdLastWeek: 0,
+      // None was given a due date.
+      dueThisWeek: 0,
+      // The "done" one was CREATED done and never moved there, so the
+      // activity trail has no status change to count. That difference is the
+      // whole reason this figure does not come from the status field.
+      completedThisWeek: 0,
     });
 
     // 2 + 1 + 1 is 4, and the total is 5. The blocked one is the difference.
@@ -386,5 +395,117 @@ describe("GET /api/tasks/stats", () => {
 
     expect(response.body.stats.total).toBe(1);
     expect(response.body.stats.overdue).toBe(0);
+  });
+  it("counts what arrived this week separately from the week before", async () => {
+    await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Made just now" });
+
+    // Through the RAW DRIVER, not the model. Mongoose strips createdAt out of
+    // any update when timestamps are on, so a model-level updateOne here does
+    // nothing at all and the test would pass for the wrong reason.
+    await TaskModel.collection.updateOne(
+      { title: "Made just now" },
+      { $set: { createdAt: daysAgo(10) } },
+    );
+
+    await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Also made just now" });
+
+    const response = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    expect(response.body.stats.createdThisWeek).toBe(1);
+    expect(response.body.stats.createdLastWeek).toBe(1);
+  });
+
+  it("counts what is due in the next seven days, and not what is overdue", async () => {
+    const soon = new Date(Date.now() + 3 * 864e5);
+    const later = new Date(Date.now() + 30 * 864e5);
+
+    await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Due soon", dueDate: soon.toISOString() });
+
+    await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Due much later", dueDate: later.toISOString() });
+
+    // Already late. It belongs in `overdue`, not in "coming up".
+    await taskDueOn(cookieA, "Was due last week", daysAgo(4));
+
+    const response = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    expect(response.body.stats.dueThisWeek).toBe(1);
+    expect(response.body.stats.overdue).toBe(1);
+  });
+
+  it("counts completions from the activity trail, not from the status field", async () => {
+    // Created done and never moved there. The status field says done; nothing
+    // was COMPLETED this week, because no transition ever happened.
+    await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Born finished", status: "done" });
+
+    const before = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    expect(before.body.stats.done).toBe(1);
+    expect(before.body.stats.completedThisWeek).toBe(0);
+
+    // Now actually move one, which writes a status_changed row.
+    const moved = await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Moved to done", status: "in_progress" });
+
+    await request(app)
+      .patch(`/api/tasks/${moved.body.task._id}`)
+      .set("Cookie", cookieA)
+      .send({ status: "done" });
+
+    const after = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    // Two are done, but only one of them was finished this week. A count taken
+    // from the status field could never tell these apart.
+    expect(after.body.stats.done).toBe(2);
+    expect(after.body.stats.completedThisWeek).toBe(1);
+  });
+
+  it("does not count a completion that happened long ago", async () => {
+    const moved = await request(app)
+      .post("/api/tasks")
+      .set("Cookie", cookieA)
+      .send({ title: "Finished ages ago", status: "in_progress" });
+
+    await request(app)
+      .patch(`/api/tasks/${moved.body.task._id}`)
+      .set("Cookie", cookieA)
+      .send({ status: "done" });
+
+    // Raw driver again, for the same reason as above.
+    await ActivityModel.collection.updateOne(
+      { type: "status_changed", to: "done" },
+      { $set: { createdAt: daysAgo(20) } },
+    );
+
+    const response = await request(app)
+      .get("/api/tasks/stats")
+      .set("Cookie", cookieA);
+
+    expect(response.body.stats.done).toBe(1);
+    expect(response.body.stats.completedThisWeek).toBe(0);
   });
 });

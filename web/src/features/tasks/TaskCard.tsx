@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Avatar } from "../../components/ui/Avatar";
+import { PersonAvatar } from "../../components/PersonAvatar";
 import { cn } from "../../lib/cn";
 import { formatShortDate, isOverdue } from "../../lib/time";
 import type { Task } from "../../types";
@@ -18,6 +18,7 @@ export function TaskCard({
   currentUserId,
   showActions = true,
   onEdit,
+  onDuplicate,
   onDelete,
 }: {
   task: Task;
@@ -25,6 +26,7 @@ export function TaskCard({
   /** Off on the dashboard, where the card is a summary rather than a control. */
   showActions?: boolean;
   onEdit?: (task: Task) => void;
+  onDuplicate?: (task: Task) => void;
   onDelete?: (task: Task) => void;
 }) {
   const overdue = isOverdue(task.dueDate) && task.status !== "done";
@@ -41,6 +43,7 @@ export function TaskCard({
           <TaskActionsMenu
             size="sm"
             onEdit={() => onEdit?.(task)}
+            onDuplicate={() => onDuplicate?.(task)}
             onDelete={() => onDelete?.(task)}
             canDelete={task.creatorId._id === currentUserId}
           />
@@ -72,7 +75,7 @@ export function TaskCard({
 
         <span className="ml-auto">
           {task.assigneeId ? (
-            <Avatar name={task.assigneeId.name} size="sm" />
+            <PersonAvatar person={task.assigneeId} size="sm" />
           ) : (
             <span className="text-xs text-muted">Unassigned</span>
           )}

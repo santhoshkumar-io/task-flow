@@ -10,4 +10,9 @@ export const commentRouter = Router({ mergeParams: true });
 
 commentRouter.get("/comments", controller.list);
 commentRouter.post("/comments", controller.create);
+// Author only. The service answers 404 to anybody else rather than 403, so
+// probing ids tells a stranger nothing. See docs/decisions/0006.
+commentRouter.patch("/comments/:commentId", controller.update);
+commentRouter.delete("/comments/:commentId", controller.remove);
+
 commentRouter.get("/activity", controller.listActivity);

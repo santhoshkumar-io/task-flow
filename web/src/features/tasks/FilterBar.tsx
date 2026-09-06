@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { TASK_SORTS, type TaskSort } from "../../api/tasks.api";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
@@ -159,17 +160,7 @@ export function FilterBar({
                 aria-label={`Remove filter ${chipLabel(key, value)}`}
                 className="text-muted hover:text-ink"
               >
-                <svg
-                  viewBox="0 0 16 16"
-                  aria-hidden="true"
-                  className="size-3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="m4 4 8 8M12 4l-8 8" />
-                </svg>
+                <X className="size-3.5" aria-hidden="true" />
               </button>
             </span>
           ))}
@@ -187,25 +178,10 @@ export function FilterBar({
   );
 }
 
+// Shows the direction it is actually sorted in, rather than a generic
+// up-and-down glyph. The hand-drawn version dimmed one of two arrows to say the
+// same thing; a single arrow says it more plainly.
 function SortArrows({ ascending }: { ascending: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-      className="size-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {/* The arrow pointing the way the list is ordered is the solid one. */}
-      <g opacity={ascending ? 1 : 0.35}>
-        <path d="M5 13V3M2.5 5.5 5 3l2.5 2.5" />
-      </g>
-      <g opacity={ascending ? 0.35 : 1}>
-        <path d="M11 3v10M8.5 10.5 11 13l2.5-2.5" />
-      </g>
-    </svg>
-  );
+  const Arrow = ascending ? ArrowUp : ArrowDown;
+  return <Arrow className="size-5" aria-hidden="true" />;
 }

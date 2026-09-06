@@ -1,7 +1,6 @@
+import { Bell, Menu, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/auth-context";
-import { Avatar } from "./ui/Avatar";
-import { Button } from "./ui/Button";
+import { UserMenu } from "./UserMenu";
 
 interface TopBarProps {
   /** `TaskFlow › Tasks › TF-118` — the only part that changes between screens. */
@@ -10,7 +9,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -22,9 +20,7 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         aria-label="Open menu"
         className="-ml-1 rounded-lg p-2 text-ink hover:bg-line/40 md:hidden"
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-          <path d="M2 4h12M2 8h12M2 12h12" strokeLinecap="round" />
-        </svg>
+        <Menu className="size-5" aria-hidden="true" />
       </button>
 
       <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
@@ -69,10 +65,7 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         </label>
         <div className="relative">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">
-            <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 fill-none stroke-current stroke-[1.5]">
-              <circle cx="7" cy="7" r="4.5" />
-              <path d="M10.5 10.5L14 14" strokeLinecap="round" />
-            </svg>
+            <Search className="size-4" aria-hidden="true" />
           </span>
           <input
             id="global-search"
@@ -91,17 +84,11 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         aria-label="Notifications"
         className="cursor-not-allowed rounded-lg p-2 text-muted opacity-60"
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-          <path d="M4 6.5a4 4 0 118 0c0 3 1 4 1 4H3s1-1 1-4z" />
-          <path d="M6.5 13a1.6 1.6 0 003 0" strokeLinecap="round" />
-        </svg>
+        <Bell className="size-5" aria-hidden="true" />
       </button>
 
-      {user && <Avatar name={user.name} size="sm" />}
-
-      <Button variant="ghost" size="sm" onClick={() => void logout()}>
-        Sign out
-      </Button>
+      {/* Sign out lives inside this, on the avatar. See UserMenu. */}
+      <UserMenu />
     </header>
   );
 }

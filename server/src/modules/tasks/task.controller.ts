@@ -48,7 +48,8 @@ export async function update(req: Request, res: Response) {
 }
 
 export async function remove(req: Request, res: Response) {
-  await taskService.remove(req.params.id as string, currentUser(req)._id);
+  const me = currentUser(req);
+  await taskService.remove(req.params.id as string, me._id, me.role);
 
   // 204: deleted, and there is nothing left to send back.
   res.status(204).end();

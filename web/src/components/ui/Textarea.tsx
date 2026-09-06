@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import {
   forwardRef,
   useId,
@@ -69,13 +70,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             role="alert"
             className="mt-1.5 flex items-center gap-1 text-xs text-destructive"
           >
-            <svg
-              viewBox="0 0 16 16"
-              aria-hidden="true"
-              className="size-3.5 shrink-0 fill-current"
-            >
-              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
+            <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
             {error}
           </p>
         )}

@@ -1,29 +1,40 @@
+import { CheckCircle2, CircleDashed, Clock, Layers, Plus } from "lucide-react";
+import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { RecentTasksCard } from "../features/dashboard/RecentTasksCard";
-import {
-  ClockIcon,
-  InboxIcon,
-  StackIcon,
-  StatCard,
-  TickIcon,
-} from "../features/dashboard/StatCard";
+import { Gain, Note, StatCard, Trend } from "../features/dashboard/StatCard";
 import { ErrorState } from "../features/tasks/ErrorState";
 import { useAuth } from "../features/auth/auth-context";
-import { useTaskStats } from "../hooks/useStats";
+import { useCreateTask } from "../features/tasks/create-task-context";
+import { useMyOpenTaskCount, useTaskStats } from "../hooks/useStats";
 
 export function DashboardPage() {
   const { user } = useAuth();
   const stats = useTaskStats();
+  const mine = useMyOpenTaskCount();
+  const { open: openCreate } = useCreateTask();
 
   return (
     <div>
-      <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-ink">
-        {/* The name comes from GET /api/auth/me, like everything else here. */}
-        {user ? `Welcome back, ${user.name.split(" ")[0]}` : "Dashboard"}
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        Here's where the work stands right now.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-ink">
+            {/* The name comes from GET /api/auth/me, like everything else here.
+                The greeting follows the clock, as the design's "Good morning,
+                Alex" implies — a fixed "Good morning" on a screen opened at
+                nine in the evening is a small, avoidable lie. */}
+            {user ? `${greeting()}, ${user.name.split(" ")[0]}` : "Dashboard"}
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Here's what's happening with your tasks.
+          </p>
+        </div>
+
+        <Button onClick={openCreate}>
+          <Plus className="size-5" aria-hidden="true" />
+          Create Task
+        </Button>
+      </div>
 
       {stats.isError ? (
         // Not four zeros. A zero would read as a real count saying there is no
@@ -36,39 +47,51 @@ export function DashboardPage() {
           />
         </Card>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {/* value is undefined until the API answers, and StatCard draws a
-              grey block rather than a placeholder digit.
-
-              Every `to` is a filter the task list already understands —
+        // Two per row on a phone, matching the design's mobile frame — not one,
+        // which pushed Recent Tasks below the fold.
+        <div className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {/* Every `to` is a filter the task list already understands:
               useTaskFilters reads ?status= and checks it against the five real
-              statuses, so nothing had to be added on the list's side and the
-              filter chip appears on arrival. */}
+              statuses, so nothing had to be added on the list's side. */}
           <StatCard
-            label="Total tasks"
+            label="Total Tasks"
             value={stats.data?.total}
-            icon={<StackIcon />}
+            icon={<Layers className="size-5" aria-hidden="true" />}
             to="/tasks"
+            hint={
+              <Trend
+                current={stats.data?.createdThisWeek}
+                previous={stats.data?.createdLastWeek}
+                fallback={`${stats.data?.createdThisWeek ?? 0} added this week`}
+              />
+            }
           />
           <StatCard
             label="To Do"
             value={stats.data?.todo}
-            icon={<InboxIcon />}
+            icon={<CircleDashed className="size-5" aria-hidden="true" />}
             to="/tasks?status=todo"
+            hint={
+              mine === undefined ? undefined : (
+                <Note>{mine.open} assigned to you</Note>
+              )
+            }
           />
           <StatCard
             label="In Progress"
             value={stats.data?.inProgress}
-            icon={<ClockIcon />}
-            tone="accent"
+            icon={<Clock className="size-5" aria-hidden="true" />}
             to="/tasks?status=in_progress"
+            hint={<Note>{stats.data?.dueThisWeek} due this week</Note>}
           />
           <StatCard
-            label="Done"
+            label="Completed"
             value={stats.data?.done}
-            icon={<TickIcon />}
-            tone="success"
+            icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
             to="/tasks?status=done"
+            hint={
+              <Gain value={stats.data?.completedThisWeek} suffix="this week" />
+            }
           />
         </div>
       )}
@@ -85,4 +108,12 @@ export function DashboardPage() {
       </p>
     </div>
   );
+}
+
+/** Morning until noon, afternoon until six, evening after that. */
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }

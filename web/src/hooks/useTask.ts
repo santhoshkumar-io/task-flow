@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
+  deleteComment,
   listActivity,
   listComments,
+  updateComment,
 } from "../api/comments.api";
 import {
   deleteTask,
@@ -84,6 +86,38 @@ export function useCreateComment(id: string) {
       // commentCount lives on the task, and the delete dialog reads it. Without
       // this the dialog would offer to remove "3 comments" after a fourth was
       // posted.
+      void queryClient.invalidateQueries({ queryKey: ["task", id] });
+    },
+  });
+}
+
+/**
+ * Editing does NOT touch ["task", id].
+ *
+ * Unlike posting or deleting, an edit leaves commentCount alone — the number of
+ * comments has not moved, only the words in one of them. Invalidating the task
+ * as well would refetch it to learn nothing.
+ */
+export function useUpdateComment(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ commentId, body }: { commentId: string; body: string }) =>
+      updateComment(id, commentId, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["comments", id] });
+    },
+  });
+}
+
+/** Deleting DOES change commentCount, so the task goes with it. */
+export function useDeleteComment(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId: string) => deleteComment(id, commentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["comments", id] });
       void queryClient.invalidateQueries({ queryKey: ["task", id] });
     },
   });

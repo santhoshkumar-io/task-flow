@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Avatar } from "../../components/ui/Avatar";
+import { PersonAvatar } from "../../components/PersonAvatar";
 import { cn } from "../../lib/cn";
 import { formatFullDate, formatRelative, formatShortDate } from "../../lib/time";
 import type { Task } from "../../types";
@@ -28,6 +28,7 @@ interface TaskTableProps {
    */
   showActions?: boolean;
   onEdit?: (task: Task) => void;
+  onDuplicate?: (task: Task) => void;
   onDelete?: (task: Task) => void;
 }
 
@@ -37,6 +38,7 @@ export function TaskTable({
   currentUserId,
   showActions = true,
   onEdit,
+  onDuplicate,
   onDelete,
 }: TaskTableProps) {
   return (
@@ -60,7 +62,7 @@ export function TaskTable({
             <Th>Updated</Th>
             {showActions && (
               <Th className="w-12">
-                <span className="sr-only">Actions</span>
+                Actions
               </Th>
             )}
           </tr>
@@ -98,7 +100,7 @@ export function TaskTable({
               <Td>
                 {task.assigneeId ? (
                   <span className="inline-flex items-center gap-2">
-                    <Avatar name={task.assigneeId.name} size="sm" />
+                    <PersonAvatar person={task.assigneeId} size="sm" />
                     <span className="truncate">{task.assigneeId.name}</span>
                   </span>
                 ) : (
@@ -123,6 +125,7 @@ export function TaskTable({
                   <TaskActionsMenu
                     size="sm"
                     onEdit={() => onEdit?.(task)}
+                    onDuplicate={() => onDuplicate?.(task)}
                     onDelete={() => onDelete?.(task)}
                     canDelete={task.creatorId._id === currentUserId}
                   />

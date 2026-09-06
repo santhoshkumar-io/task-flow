@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { currentUser } from "../../lib/currentUser.js";
-import { createCommentSchema } from "./comment.schema.js";
+import { createCommentSchema, updateCommentSchema } from "./comment.schema.js";
 import * as commentService from "./comment.service.js";
 
 // Knows about HTTP and nothing else.
@@ -32,4 +32,27 @@ export async function listActivity(req: Request, res: Response) {
 // from the parent path visible here.
 function taskIdFrom(req: Request): string {
   return req.params.taskId as string;
+}
+
+export async function update(req: Request, res: Response) {
+  const input = updateCommentSchema.parse(req.body);
+
+  const comment = await commentService.update(
+    String(req.params.taskId),
+    String(req.params.commentId),
+    currentUser(req)._id,
+    input.body,
+  );
+
+  res.json({ comment });
+}
+
+export async function remove(req: Request, res: Response) {
+  await commentService.remove(
+    String(req.params.taskId),
+    String(req.params.commentId),
+    currentUser(req)._id,
+  );
+
+  res.status(204).end();
 }

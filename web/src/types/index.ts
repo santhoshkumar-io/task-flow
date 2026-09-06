@@ -1,12 +1,66 @@
 // The shapes the server actually sends. Kept small on purpose: only what a
 // screen needs. See server/src/models/ for the full records.
 
+// The design's Team screen shows Admin, Engineer, Designer and Product Manager.
+// V9 refused to draw the column because roles did not exist; they do now, and
+// one of them changes behaviour — an admin may delete anybody's task.
+// See docs/decisions/0021-roles-are-real.md.
+export const USER_ROLES = [
+  "admin",
+  "engineer",
+  "designer",
+  "product_manager",
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: "Admin",
+  engineer: "Engineer",
+  designer: "Designer",
+  product_manager: "Product Manager",
+};
+
+/** Somebody invited exists as a record with no password, and cannot sign in. */
+export const USER_STATUSES = ["active", "invited"] as const;
+
+export type UserStatus = (typeof USER_STATUSES)[number];
+
+export const USER_STATUS_LABELS: Record<UserStatus, string> = {
+  active: "Active",
+  invited: "Invited",
+};
+
 export interface User {
   _id: string;
   name: string;
   email: string;
+  role: UserRole;
+  status: UserStatus;
+  /** An IANA name such as "Asia/Kolkata". Null when never set. */
+  timezone?: string | null;
+  notifyOnAssignment?: boolean;
+  notifyOnMention?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** A row on the Team screen. GET /api/users returns exactly these fields. */
+export interface TeamMember {
+  _id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+}
+
+/** GET /api/users/workspace — the Team footer and the Settings account card. */
+export interface Workspace {
+  name: string;
+  members: number;
+  seatLimit: number;
+  seatsRemaining: number;
 }
 
 // The five statuses and four priorities from the design, not the brief's three
@@ -120,6 +174,13 @@ export interface TaskStats {
   done: number;
   /** Past their due date and not Done. Never counts a task with no due date. */
   overdue: number;
+  /** Created in the last 7 days, and in the 7 before that. */
+  createdThisWeek: number;
+  createdLastWeek: number;
+  /** Not done, due inside the next 7 days. */
+  dueThisWeek: number;
+  /** Moved INTO done in the last 7 days, from the activity trail. */
+  completedThisWeek: number;
 }
 
 /** One person's numbers on the Team screen, from GET /api/users/stats. */

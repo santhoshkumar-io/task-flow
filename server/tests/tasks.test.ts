@@ -2,6 +2,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { AUTH_COOKIE_NAME } from "../src/lib/cookie.js";
+import { ActivityModel } from "../src/models/activity.model.js";
 import { CounterModel } from "../src/models/counter.model.js";
 import { TaskModel } from "../src/models/task.model.js";
 import { UserModel } from "../src/models/user.model.js";
@@ -533,6 +534,9 @@ describe("GET /api/tasks — the list", () => {
   });
 });
 
+const daysBefore = (n: number) => new Date(Date.now() - n * 864e5);
+const daysAfter = (n: number) => new Date(Date.now() + n * 864e5);
+
 function startOfToday(): Date {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -562,6 +566,25 @@ describe("GET /api/tasks/stats", () => {
       overdue: await TaskModel.countDocuments({
         dueDate: { $ne: null, $lt: startOfToday() },
         status: { $ne: "done" },
+      }),
+
+      // Every task in this test was made moments ago, so all of them fall in
+      // "this week" and none in the week before.
+      createdThisWeek: await TaskModel.countDocuments({
+        createdAt: { $gte: daysBefore(7) },
+      }),
+      createdLastWeek: await TaskModel.countDocuments({
+        createdAt: { $gte: daysBefore(14), $lt: daysBefore(7) },
+      }),
+      dueThisWeek: await TaskModel.countDocuments({
+        dueDate: { $ne: null, $gte: new Date(), $lt: daysAfter(7) },
+        status: { $ne: "done" },
+      }),
+      // From the activity trail, not from the status field — see getStats.
+      completedThisWeek: await ActivityModel.countDocuments({
+        type: "status_changed",
+        to: "done",
+        createdAt: { $gte: daysBefore(7) },
       }),
     });
   });

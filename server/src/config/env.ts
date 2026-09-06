@@ -42,6 +42,61 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(1).default("7d"),
 
   CORS_ORIGIN: z.string().url(),
+
+  // The two rate limits, as SETTINGS rather than constants in the code.
+  //
+  // V10 requires each guard to be made to fire on purpose. With a constant, the
+  // only way to do that is to edit the source, hit it, and remember to change
+  // it back — and "remember to change it back" is how a 2-attempt login limit
+  // reaches production. As a setting it is one variable for one run, and the
+  // default is what everybody else gets.
+  //
+  // See docs/decisions/0019-rate-limits-from-env.md.
+  RATE_LIMIT_WINDOW_MINUTES: z.coerce.number().int().positive().default(15),
+
+  // Login is where password guessing happens, and a wrong guess costs the
+  // attacker nothing. Five in fifteen minutes makes guessing useless and is far
+  // above anything a real person does — nobody mistypes their own password five
+  // times in a quarter of an hour and then a sixth.
+  RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(5),
+
+  // Everything else. This one exists for abuse, not for guessing, so it is
+  // deliberately loose: the task list alone can be a handful of requests per
+  // screen, and a limit a real person can reach is a bug.
+  RATE_LIMIT_API_MAX: z.coerce.number().int().positive().default(300),
+
+  // Where the frontend lives, used to build the link in a password reset
+  // email. Separate from CORS_ORIGIN even though they are the same value today:
+  // one says who may call this API, the other says what to put in an email.
+  // Conflating them means the day they differ, changing one silently changes
+  // the other.
+  APP_URL: z.string().url().default("http://localhost:5173"),
+
+  // Sending email. ALL OPTIONAL: without them the app still starts and still
+  // works, and the reset link is written to the server log instead with a loud
+  // warning. Refusing to boot without SMTP would mean nobody could run this
+  // project without an email account, for a feature they may never touch.
+  // See docs/decisions/0020-password-reset.md.
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASS: z.string().min(1).optional(),
+
+  // Implicit TLS on connect (port 465). Port 587 upgrades with STARTTLS
+  // instead, which nodemailer does on its own, so this stays false there.
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+
+  // What the email says it is from. Defaults to the login user, which is what
+  // most providers require anyway — Gmail rewrites anything else.
+  SMTP_FROM: z.string().min(1).optional(),
+
+  // How many people this workspace may hold. The design's Team footer reads
+  // "5 members · 2 seats remaining", which is only honest if both halves are
+  // real numbers — the remainder is this minus the actual user count.
+  SEAT_LIMIT: z.coerce.number().int().positive().default(7),
 });
 
 export type Env = z.infer<typeof envSchema>;

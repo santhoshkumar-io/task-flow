@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
@@ -57,17 +58,7 @@ export function Drawer({
               aria-label="Close"
               className="-mr-1 shrink-0 rounded-lg p-1.5 text-muted hover:bg-surface hover:text-ink"
             >
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              >
-                <path d="m4 4 8 8M12 4l-8 8" />
-              </svg>
+              <X className="size-5" aria-hidden="true" />
             </Dialog.Close>
           </header>
 

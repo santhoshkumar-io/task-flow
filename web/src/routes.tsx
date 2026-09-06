@@ -2,10 +2,12 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute, PublicOnlyRoute } from "./features/auth/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MyTasksRedirect } from "./pages/MyTasksRedirect";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { TeamPage } from "./pages/TeamPage";
 import { TaskDetailPage } from "./pages/TaskDetailPage";
 import { TaskListPage } from "./pages/TaskListPage";
@@ -21,6 +23,10 @@ export const router = createBrowserRouter([
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
+      // Inside PublicOnlyRoute with the others: somebody already signed in has
+      // no use for either, and would be sent to the task list.
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
     ],
   },
   {

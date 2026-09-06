@@ -135,6 +135,7 @@ export function CreateTaskDrawer({
       open={open}
       onOpenChange={setOpen}
       title="Create Task"
+      description="Add a task and assign it to a teammate."
       footer={
         <>
           <Button variant="secondary" onClick={() => setOpen(false)}>
@@ -165,7 +166,7 @@ export function CreateTaskDrawer({
 
         <Input
           label="Task Title"
-          placeholder="What needs doing?"
+          placeholder="e.g. Implement user authentication"
           error={errors.title?.message}
           // Focus starts here rather than on the close button, so typing can
           // begin the moment the drawer opens.
@@ -175,7 +176,7 @@ export function CreateTaskDrawer({
 
         <Textarea
           label="Description"
-          placeholder="Add more detail…"
+          placeholder="Add context, acceptance criteria or links…"
           rows={5}
           error={errors.description?.message}
           hint="Markdown supported"

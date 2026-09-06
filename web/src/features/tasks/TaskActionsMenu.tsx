@@ -1,28 +1,37 @@
+import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+
+/** Every item in this menu shares one glyph size. */
+const ICON = "size-4 shrink-0";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "../../lib/cn";
 
-// The ⋯ menu. Two items, not the design's three.
+// The ⋯ menu — the design's three items.
 //
-// *Duplicate* is on the plan's exclusion list, so it is left out rather than
-// drawn dead — AGENTS.md calls a visible control that silently does nothing the
-// worst of the three options.
+// *Duplicate* was on the plan's exclusion list and left out for eight versions.
+// It is built now, and it needed no server work: duplicating is POST /api/tasks
+// with the same fields, which the create drawer already does.
 //
-// *Delete task* appears only for the creator (docs/decisions/0006). That is a
-// kindness, not the guard: the server answers 404 to anyone else, which the
-// exit check proves with curl.
+// *Delete task* appears only for somebody allowed to use it (0006, amended by
+// 0021 so an admin may delete anybody's). That is a kindness, not the guard —
+// the server answers 404 to anyone else.
 
 interface TaskActionsMenuProps {
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  /** True while the copy is being created, so the item can say so. */
+  duplicating?: boolean;
   /** Small on a table row, normal in the detail header. */
   size?: "sm" | "md";
 }
 
 export function TaskActionsMenu({
   onEdit,
+  onDuplicate,
   onDelete,
   canDelete,
+  duplicating = false,
   size = "md",
 }: TaskActionsMenuProps) {
   return (
@@ -39,11 +48,7 @@ export function TaskActionsMenu({
           size === "sm" ? "size-8" : "size-9 border border-line bg-white",
         )}
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-current">
-          <circle cx="3" cy="8" r="1.4" />
-          <circle cx="8" cy="8" r="1.4" />
-          <circle cx="13" cy="8" r="1.4" />
-        </svg>
+        <MoreHorizontal className="size-5" aria-hidden="true" />
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
@@ -53,12 +58,16 @@ export function TaskActionsMenu({
           onClick={(event) => event.stopPropagation()}
           className="z-50 min-w-40 rounded-lg border border-line bg-white p-1 shadow-md"
         >
-          <Item onSelect={onEdit} icon={<PencilIcon />}>
+          <Item onSelect={onEdit} icon={<Pencil className={ICON} aria-hidden="true" />}>
             Edit task
           </Item>
 
+          <Item onSelect={onDuplicate} icon={<Copy className={ICON} aria-hidden="true" />}>
+            {duplicating ? "Duplicating…" : "Duplicate"}
+          </Item>
+
           {canDelete && (
-            <Item onSelect={onDelete} icon={<BinIcon />} destructive>
+            <Item onSelect={onDelete} icon={<Trash2 className={ICON} aria-hidden="true" />} destructive>
               Delete task
             </Item>
           )}
@@ -97,25 +106,5 @@ function Item({
       </span>
       {children}
     </DropdownMenu.Item>
-  );
-}
-
-const ICON = "size-4 fill-none stroke-current stroke-[1.5]";
-
-function PencilIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-2.5.5L4 10z" />
-    </svg>
-  );
-}
-
-function BinIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className={ICON} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 4.5h11M6.5 4.5v-1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1" />
-      <path d="M4 4.5 4.7 13a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L12 4.5" />
-      <path d="M6.7 7v4M9.3 7v4" />
-    </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "../types";
 import { TASK_PRIORITIES, TASK_STATUSES } from "../types";
 
 // The SAME rules as server/src/modules/auth/auth.schema.ts.
@@ -26,6 +27,31 @@ export const registerSchema = z.object({
     .max(72, "Password must be 72 characters or fewer"),
   rememberMe: z.boolean(),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+});
+
+// The same length rules as registering, plus a confirmation box. A reset must
+// not be a way around the rules that apply when the password was first set.
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72, "Password must be 72 characters or fewer"),
+    confirmPassword: z.string().min(1, "Please type the password again"),
+  })
+  // Only on the frontend. The server never sees confirmPassword — it exists to
+  // catch a typo in a password nobody can see themselves type, and the server
+  // has nothing to compare it against.
+  .refine((values) => values.password === values.confirmPassword, {
+    message: "The two passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export type LoginValues = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;
@@ -109,3 +135,45 @@ export const commentSchema = z.object({
 });
 
 export type CommentValues = z.infer<typeof commentSchema>;
+
+// The invite dialog. The same rules the server's inviteSchema applies, so a
+// mistake is caught before the request rather than coming back as a 400.
+export const inviteSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+  role: z.enum(USER_ROLES),
+});
+
+export type InviteValues = z.infer<typeof inviteSchema>;
+
+// Settings → Security. currentPassword has no length rule of its own: it either
+// matches what is stored or it does not, and a rule here would only reject an
+// old password set before the rules changed.
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72, "Password must be 72 characters or fewer"),
+    confirmPassword: z.string().min(1, "Please type the new password again"),
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: "The two passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  timezone: z.string().trim().max(64),
+});
+
+export type ProfileValues = z.infer<typeof profileSchema>;
+
+export const workspaceSchema = z.object({
+  name: z.string().trim().min(1, "Workspace name is required").max(100),
+});
+
+export type WorkspaceValues = z.infer<typeof workspaceSchema>;

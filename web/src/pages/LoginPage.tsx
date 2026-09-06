@@ -19,7 +19,12 @@ export function LoginPage() {
 
   // Where they were trying to go before being sent here, so they land back
   // there instead of always on /tasks.
-  const from = (location.state as { from?: string } | null)?.from ?? "/tasks";
+  const state = location.state as { from?: string; notice?: string } | null;
+  const from = state?.from ?? "/tasks";
+
+  // Set by the reset screen after a password change, so the person understands
+  // why they are being asked to sign in rather than being let straight through.
+  const notice = state?.notice ?? null;
 
   const {
     register,
@@ -63,14 +68,37 @@ export function LoginPage() {
   return (
     <AuthCard
       title="Welcome back"
-      subtitle="Sign in to pick up where you left off."
+      subtitle="Sign in to continue to your workspace."
       formError={formError}
+      notice={notice}
       footer={
         <>
           Don&apos;t have an account?{" "}
-          <Link to="/register" className="font-medium text-ink hover:underline">
+          <Link
+            to="/register"
+            className="font-medium text-accent hover:underline"
+          >
             Create an account
           </Link>
+        </>
+      }
+      legal={
+        <>
+          {/* NOT a link, and not a disabled button dressed as one either.
+              There is no policy document in this project, so there is nothing
+              to link to — and AGENTS.md's rule is that a control which silently
+              does nothing is the worst option of the three. Plain words in a
+              plain sentence are not a control at all, so the rule does not
+              bite: nobody expects body text to be clickable.
+
+              It reads exactly like the rest of the line, which is also how the
+              design draws it. The title is the only trace, for anyone who
+              wonders why it is not a link. */}
+          By signing in you agree to the{" "}
+          <span title="There is no policy document in this build — see the README">
+            acceptable use policy
+          </span>
+          .
         </>
       }
     >
@@ -88,13 +116,21 @@ export function LoginPage() {
           autoComplete="current-password"
           placeholder="••••••••"
           error={errors.password?.message}
+          labelAction={
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-accent hover:underline"
+            >
+              Forgot password?
+            </Link>
+          }
           {...register("password")}
         />
 
         <Checkbox label="Keep me signed in" {...register("rememberMe")} />
 
         <Button type="submit" fullWidth loading={isSubmitting}>
-          {isSubmitting ? "Signing in…" : "Sign in"}
+          {isSubmitting ? "Signing in…" : "Sign In"}
         </Button>
       </form>
     </AuthCard>

@@ -13,3 +13,9 @@ export const createCommentSchema = z.object({
 });
 
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+
+// Editing takes the same body rule as creating. A different limit on one of
+// them would let somebody post a short comment and then grow it past the cap.
+export const updateCommentSchema = createCommentSchema;
+
+export type UpdateCommentInput = CreateCommentInput;

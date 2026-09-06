@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { CreateTaskDrawer } from "../features/tasks/CreateTaskDrawer";
@@ -119,9 +120,7 @@ function MobileTabBar({ onCreate }: { onCreate: () => void }) {
         aria-label="Create task"
         className="flex size-12 items-center justify-center rounded-full bg-ink text-white hover:bg-ink/90"
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" className="size-5 fill-none stroke-current stroke-2">
-          <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-        </svg>
+        <Plus className="size-6" aria-hidden="true" />
       </button>
 
       <TabLink to="/my-tasks" label="My Tasks" />

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Avatar } from "../../components/ui/Avatar";
+import { PersonAvatar } from "../../components/PersonAvatar";
 import { Card } from "../../components/ui/Card";
 import { cn } from "../../lib/cn";
 import { formatFullDate, formatRelative, formatShortDate, isOverdue } from "../../lib/time";
@@ -23,7 +23,7 @@ export function TaskInfoCard({ task }: { task: Task }) {
         <Row label="Assignee">
           {task.assigneeId ? (
             <span className="inline-flex items-center gap-2">
-              <Avatar name={task.assigneeId.name} size="sm" />
+              <PersonAvatar person={task.assigneeId} size="sm" />
               {task.assigneeId.name}
             </span>
           ) : (
@@ -57,7 +57,7 @@ export function TaskInfoCard({ task }: { task: Task }) {
 
         <Row label="Created by">
           <span className="inline-flex items-center gap-2">
-            <Avatar name={task.creatorId.name} size="sm" />
+            <PersonAvatar person={task.creatorId} size="sm" />
             {task.creatorId.name}
           </span>
         </Row>

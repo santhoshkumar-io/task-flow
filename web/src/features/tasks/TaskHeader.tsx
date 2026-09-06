@@ -11,6 +11,7 @@ interface TaskHeaderProps {
   activity: Activity[];
   canDelete: boolean;
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }
 
@@ -19,6 +20,7 @@ export function TaskHeader({
   activity,
   canDelete,
   onEdit,
+  onDuplicate,
   onDelete,
 }: TaskHeaderProps) {
   const actor = lastEditor(task, activity);
@@ -55,6 +57,7 @@ export function TaskHeader({
           </Button>
           <TaskActionsMenu
             onEdit={onEdit}
+            onDuplicate={onDuplicate}
             onDelete={onDelete}
             canDelete={canDelete}
           />

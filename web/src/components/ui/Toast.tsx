@@ -1,3 +1,4 @@
+import { AlertCircle, X } from "lucide-react";
 import * as RadixToast from "@radix-ui/react-toast";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
@@ -54,13 +55,7 @@ export function Toast({
           aria-hidden="true"
           className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-white"
         >
-          <svg
-            viewBox="0 0 16 16"
-            className="size-3.5 fill-current"
-            aria-hidden="true"
-          >
-            <path d="M8 3a.75.75 0 01.75.75v4a.75.75 0 01-1.5 0v-4A.75.75 0 018 3zm0 9a1 1 0 110-2 1 1 0 010 2z" />
-          </svg>
+          <AlertCircle className="size-4" aria-hidden="true" />
         </span>
       )}
 
@@ -80,17 +75,7 @@ export function Toast({
         aria-label="Dismiss"
         className="shrink-0 text-muted hover:text-ink"
       >
-        <svg
-          viewBox="0 0 16 16"
-          aria-hidden="true"
-          className="size-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        >
-          <path d="m4 4 8 8M12 4l-8 8" />
-        </svg>
+        <X className="size-5" aria-hidden="true" />
       </RadixToast.Close>
     </RadixToast.Root>
   );

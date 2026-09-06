@@ -1,9 +1,17 @@
-import { forwardRef, useState, type InputHTMLAttributes } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import {
+  forwardRef,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Input } from "../../components/ui/Input";
 
 interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  /** Passed straight through — the login screen's "Forgot password?". */
+  labelAction?: ReactNode;
 }
 
 // The show/hide eye from the design's login card.
@@ -12,7 +20,7 @@ interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
 // specifically, not a general building block — and it is only ever used by the
 // two auth screens.
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-  function PasswordInput({ label = "Password", error, ...rest }, ref) {
+  function PasswordInput({ label = "Password", error, labelAction, ...rest }, ref) {
     const [visible, setVisible] = useState(false);
 
     return (
@@ -21,6 +29,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         type={visible ? "text" : "password"}
         label={label}
         error={error}
+        labelAction={labelAction}
         trailing={
           <button
             type="button"
@@ -43,26 +52,12 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 
 function EyeIcon() {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className="size-4 fill-none stroke-current stroke-[1.5]"
-    >
-      <path d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10z" />
-      <circle cx="10" cy="10" r="2.5" />
-    </svg>
+    <Eye className="size-5" aria-hidden="true" />
   );
 }
 
 function EyeOffIcon() {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className="size-4 fill-none stroke-current stroke-[1.5]"
-    >
-      <path d="M8.2 4.7A7.6 7.6 0 0110 4.5c5.5 0 8.5 5.5 8.5 5.5a15 15 0 01-2.3 3M5.2 6.2A14.6 14.6 0 001.5 10S4.5 15.5 10 15.5c1.2 0 2.3-.3 3.3-.7" />
-      <path d="M2.5 2.5l15 15" />
-    </svg>
+    <EyeOff className="size-5" aria-hidden="true" />
   );
 }

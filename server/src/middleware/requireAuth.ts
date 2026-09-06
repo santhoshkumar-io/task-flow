@@ -29,9 +29,30 @@ export async function requireAuth(
     // Costs one database read per request, and buys this: someone whose account
     // was deleted stops working immediately, instead of staying logged in for
     // however many days are left on their pass.
-    const user = await UserModel.findById(payload.sub);
+    const user = await UserModel.findById(payload.sub).select(
+      "+passwordChangedAt",
+    );
     if (!user) {
       return next(unauthorized);
+    }
+
+    // A pass issued BEFORE the password last changed is no longer honoured.
+    //
+    // This is what makes resetting a password mean something. A signed pass
+    // cannot be recalled — it stays valid for its seven days no matter what we
+    // do — so the only defence is to stop accepting it. Without this check,
+    // somebody who reset their password because a session was stolen would
+    // have changed nothing at all for the thief.
+    //
+    // iat is in whole seconds, so it is compared against a passwordChangedAt
+    // rounded down the same way. Without that, a pass issued in the same second
+    // as the change looks older than it by a fraction and the person who just
+    // reset their password is thrown out immediately.
+    if (user.passwordChangedAt) {
+      const changedAt = Math.floor(user.passwordChangedAt.getTime() / 1000);
+      if (payload.iat < changedAt) {
+        return next(unauthorized);
+      }
     }
 
     req.user = user;

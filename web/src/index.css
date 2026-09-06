@@ -30,6 +30,15 @@
   --color-skeleton: #ededed;
   --color-muted: #737373; /* chosen — 4.7:1 on the canvas, passes AA */
 
+  /* The signed-in person's own avatar, which the design tints.
+     A DARKER accent than the token above, on purpose: --color-accent on a pale
+     accent fill measures 3.1:1, which fails AA for text at 10-14px. This is
+     6.2:1 on the same fill. The fill is the same value as
+     --color-status-progress-bg below, and for the same reason — both are the
+     palest usable accent. */
+  --color-accent-strong: #1d4ed8; /* chosen — 6.2:1 on accent-soft, passes AA */
+  --color-accent-soft: #eff6ff;
+
   /* 8.2 Status pill backgrounds — all four chosen, Tailwind's 50 shades */
   --color-status-todo-bg: #f5f5f5;
   --color-status-progress-bg: #eff6ff;
@@ -86,6 +95,34 @@
   }
 
   /* The design's focus treatment: accent border plus a soft accent ring. */
+  /* Chrome paints its own pale blue behind an autofilled field, and the
+     background-color cannot be overridden — but background-CLIP can. Clipping
+     it to the text leaves the fill visible only behind the glyphs, which the
+     text-fill-color then covers, so the field stays white like every other one.
+
+     Done with background-clip rather than the usual "inset box-shadow" trick
+     on purpose: a box-shadow here would paint over the focus ring, which is
+     also a box-shadow, and an autofilled field would lose its focus outline.
+
+     Two costs, both accepted:
+
+     1. The browser's own "this was filled for you" hint is gone. The value is
+        still in the field, and the design draws a plain white box.
+     2. Clipping applies to the field's OWN bg-white too, so an autofilled
+        input is transparent rather than white. That only matters on a
+        non-white surface, and the only fields Chrome autofills here — email
+        and password — sit on white auth cards. The search boxes, which sit on
+        the canvas, are not autofill targets. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: var(--color-ink);
+    caret-color: var(--color-ink);
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;

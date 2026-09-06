@@ -1,3 +1,4 @@
+import { LayoutGrid, ListChecks, Settings, UserCheck, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../features/auth/auth-context";
 import { useMyTasksActive } from "../hooks/useMyTasksActive";
@@ -11,11 +12,13 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
+// Icons come straight from lucide rather than through a wrapper each — the
+// wrapper only existed when every glyph was hand-drawn here.
 const LINKS = [
-  { to: "/dashboard", label: "Dashboard", icon: GridIcon },
-  { to: "/tasks", label: "Tasks", icon: ListIcon },
-  { to: "/my-tasks", label: "My Tasks", icon: ListIcon },
-  { to: "/team", label: "Team", icon: PeopleIcon },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/my-tasks", label: "My Tasks", icon: UserCheck },
+  { to: "/team", label: "Team", icon: Users },
 ] as const;
 
 export function Sidebar({ onNavigate }: SidebarProps) {
@@ -66,7 +69,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                   )
                 }
               >
-                <Icon />
+                <Icon className="size-5 shrink-0" aria-hidden="true" />
                 <span className="flex-1">{label}</span>
 
                 {/* The badge and the row count on the list will differ, because
@@ -96,13 +99,14 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           title="Settings is not part of this build — see the README"
           className="mb-1 flex w-full cursor-not-allowed items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-muted opacity-60"
         >
-          <GearIcon />
+          <Settings className="size-5 shrink-0" aria-hidden="true" />
           Settings
         </button>
 
         {user && (
           <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <Avatar name={user.name} size="sm" />
+            {/* Always you, so always tinted. */}
+            <Avatar name={user.name} size="sm" tone="accent" />
             <span className="truncate text-sm font-medium text-ink">
               {user.name}
             </span>
@@ -113,39 +117,3 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   );
 }
 
-function GridIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-      <rect x="2" y="2" width="5" height="5" rx="1" />
-      <rect x="9" y="2" width="5" height="5" rx="1" />
-      <rect x="2" y="9" width="5" height="5" rx="1" />
-      <rect x="9" y="9" width="5" height="5" rx="1" />
-    </svg>
-  );
-}
-
-function ListIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-      <path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PeopleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-      <circle cx="6" cy="5.5" r="2.5" />
-      <path d="M1.5 14a4.5 4.5 0 019 0M11 3.2a2.5 2.5 0 010 4.6M12.5 14a4.5 4.5 0 00-1.2-3" />
-    </svg>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.5]">
-      <circle cx="8" cy="8" r="2" />
-      <path d="M8 1.5v1.8M8 12.7v1.8M14.5 8h-1.8M3.3 8H1.5M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3M12.6 12.6l-1.3-1.3M4.7 4.7L3.4 3.4" strokeLinecap="round" />
-    </svg>
-  );
-}

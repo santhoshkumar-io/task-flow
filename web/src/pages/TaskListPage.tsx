@@ -14,6 +14,7 @@ import { TaskTableSkeleton } from "../features/tasks/TaskTableSkeleton";
 import { DeleteTaskFromList } from "../features/tasks/DeleteTaskFromList";
 import { useCreateTask } from "../features/tasks/create-task-context";
 import { useAuth } from "../features/auth/auth-context";
+import { useDuplicateTask } from "../hooks/useDuplicateTask";
 import { useTaskFilters } from "../hooks/useTaskFilters";
 import { useTasks, useUsers } from "../hooks/useTasks";
 import type { Task } from "../types";
@@ -37,6 +38,7 @@ export function TaskListPage() {
   const { open: openCreate } = useCreateTask();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const duplicate = useDuplicateTask();
 
   // Mobile "Load more" keeps what is already on screen, so it has to remember
   // the pages before this one. `upToPage` records which page the stack was
@@ -77,11 +79,7 @@ export function TaskListPage() {
             Tasks
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {/* Only ever the number the API returned. While it is loading or
-                has failed there is no number to show, so none is shown. */}
-            {tasks.data
-              ? `${tasks.data.total} ${tasks.data.total === 1 ? "task" : "tasks"} in this workspace`
-              : " "}
+            Manage and track work across the team.
           </p>
         </div>
 
@@ -168,6 +166,7 @@ export function TaskListPage() {
             // button undoes it — the same rule as the filters,
             // docs/decisions/0010-filters-in-the-url.md.
             onEdit={(task) => navigate(`/tasks/${task._id}?edit=1`)}
+            onDuplicate={(task) => duplicate.mutate(task)}
             onDelete={setDeleteTarget}
           />
         </div>
@@ -179,6 +178,7 @@ export function TaskListPage() {
               task={task}
               currentUserId={user?._id}
               onEdit={(target) => navigate(`/tasks/${target._id}?edit=1`)}
+              onDuplicate={(target) => duplicate.mutate(target)}
               onDelete={setDeleteTarget}
             />
           ))}

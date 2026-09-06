@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 import { Button } from "./Button";
@@ -81,18 +82,6 @@ export function ConfirmDialog({
 
 function BinIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="size-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 7h16M10 7V5h4v2M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12" />
-      <path d="M10 11v5M14 11v5" />
-    </svg>
+    <Trash2 className="size-7" aria-hidden="true" />
   );
 }

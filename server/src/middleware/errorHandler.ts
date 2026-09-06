@@ -59,6 +59,22 @@ interface Described {
   fields?: { field: string; message: string }[];
 }
 
+/**
+ * An error thrown by body-parser, which tags every one of its own with `type`
+ * — "entity.too.large", "entity.parse.failed", "encoding.unsupported".
+ *
+ * Checked rather than trusted: `err.status` alone would match anything that
+ * happens to carry a number called status, including errors from libraries that
+ * have their own meaning for it.
+ */
+function isBodyParserError(err: unknown): err is Error & { type: string } {
+  return (
+    err instanceof Error &&
+    "type" in err &&
+    typeof (err as { type: unknown }).type === "string"
+  );
+}
+
 function describe(err: unknown): Described {
   if (err instanceof AppError) {
     return { status: err.status, code: err.code, message: err.message };
@@ -108,6 +124,23 @@ function describe(err: unknown): Described {
       status: 400,
       code: "INVALID_JSON",
       message: "The request body is not valid JSON.",
+    };
+  }
+
+  // The body was larger than express.json's limit.
+  //
+  // Without this branch the guard fires correctly and then the API answers
+  // "Something went wrong on our side" — a 500 blaming us for a request the
+  // client should not have sent, and telling them nothing about how to fix it.
+  // Found by the V10 test that expected a 413 and got a 500.
+  //
+  // body-parser marks its own failures with `type`, which is what separates
+  // this from any other error that happens to carry a status.
+  if (isBodyParserError(err) && err.type === "entity.too.large") {
+    return {
+      status: 413,
+      code: "PAYLOAD_TOO_LARGE",
+      message: "The request body is too large.",
     };
   }
 

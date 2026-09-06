@@ -1,3 +1,4 @@
+import { FileQuestion } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -22,18 +23,7 @@ export function NotFoundTask() {
           aria-hidden="true"
           className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-surface text-muted"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="6" />
-            <path d="m20 20-4.5-4.5M9 11h4" />
-          </svg>
+          <FileQuestion className="size-8" aria-hidden="true" />
         </span>
 
         <h1 className="font-heading text-xl font-semibold text-ink">

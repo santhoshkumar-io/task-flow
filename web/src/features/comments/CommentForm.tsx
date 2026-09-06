@@ -1,3 +1,4 @@
+import { Send } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { ApiError } from "../../api/client";
@@ -53,7 +54,15 @@ export function CommentForm({ onSubmit, pending, error }: CommentFormProps) {
         "sticky bottom-16 z-10 md:static md:z-auto",
       )}
     >
-      {user && <Avatar name={user.name} size="md" className="hidden sm:flex" />}
+      {/* The composer shows your own avatar, so it carries your tint. */}
+      {user && (
+        <Avatar
+          name={user.name}
+          size="md"
+          tone="accent"
+          className="hidden sm:flex"
+        />
+      )}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-end gap-2">
@@ -78,13 +87,7 @@ export function CommentForm({ onSubmit, pending, error }: CommentFormProps) {
             className="size-10 shrink-0 rounded-full p-0 md:hidden"
           >
             {!pending && (
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                className="size-4 fill-none stroke-current stroke-[1.5]"
-              >
-                <path d="M2 8h11M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Send className="size-5" aria-hidden="true" />
             )}
           </Button>
         </div>
