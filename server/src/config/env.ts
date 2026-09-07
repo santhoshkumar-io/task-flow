@@ -93,6 +93,26 @@ const envSchema = z.object({
   // most providers require anyway — Gmail rewrites anything else.
   SMTP_FROM: z.string().min(1).optional(),
 
+  // How many proxies sit in front of this server.
+  //
+  // Express reads the caller's address from the socket. In production the
+  // socket belongs to a load balancer, not to a person, so every request
+  // looks like it came from the same place — and the login limiter, which
+  // counts five attempts per address per fifteen minutes, becomes five
+  // attempts for EVERYBODY. The sixth person to sign in that quarter hour
+  // is refused.
+  //
+  // Telling Express how many hops to skip makes req.ip the real caller
+  // again. The number is not a constant because it describes the hosting
+  // in front of the app rather than the app: two on Render behind a Vercel
+  // rewrite (Vercel's edge, then Render's balancer), one on Render alone,
+  // zero on a laptop.
+  //
+  // Zero means "trust nobody", which is Express's default and the only
+  // safe answer when nothing is in front: a forwarded-for header from the
+  // open internet is written by whoever sent it.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+
   // How many people this workspace may hold. The design's Team footer reads
   // "5 members · 2 seats remaining", which is only honest if both halves are
   // real numbers — the remainder is this minus the actual user count.

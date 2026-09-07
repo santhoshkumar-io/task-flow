@@ -29,6 +29,18 @@ export function createApp(options: AppOptions = {}) {
   const app = express();
   const { authLimiter, apiLimiter } = buildRateLimiters(options.rateLimit);
 
+  // How far back to look for the caller's real address. See TRUST_PROXY_HOPS
+  // in config/env.ts — with this unset behind a proxy, every request appears
+  // to come from the balancer and the login limiter counts the whole world
+  // in one bucket.
+  //
+  // A number rather than `true`: `true` trusts the entire forwarded-for
+  // chain, which anyone can extend by sending the header themselves, and
+  // express-rate-limit refuses to run with it for exactly that reason.
+  if (env.TRUST_PROXY_HOPS > 0) {
+    app.set("trust proxy", env.TRUST_PROXY_HOPS);
+  }
+
   // A dozen protective response headers in one line, before anything else — a
   // request that never reaches a route still needs them.
   //
