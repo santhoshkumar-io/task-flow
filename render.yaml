@@ -30,12 +30,17 @@ services:
     # typescript and every @types/* package live. The compiler had no idea what
     # `process`, `console` or `express` were.
     #
+    # server/.npmrc says the same thing, because a service created by hand in
+    # the dashboard ignores this file completely and then the repository is the
+    # only place left to say it.
+    #
     # ci, not install: it installs exactly what package-lock.json pins, and
     # fails instead of quietly resolving something newer.
     #
-    # prune afterwards, because the build tools are dead weight once dist/
-    # exists and nothing at runtime imports them.
-    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
+    # The prune needs --include=prod to undo .npmrc: npm lets --include beat
+    # --omit, so without it the .npmrc line keeps every build tool in the
+    # deployed image and the prune quietly does nothing.
+    buildCommand: npm ci && npm run build && npm prune --omit=dev --include=prod
     startCommand: npm run start
 
     # Render calls this to decide whether the service is alive. It is a real

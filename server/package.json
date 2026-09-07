@@ -14,6 +14,11 @@
     "seed": "tsx src/seed.ts",
     "dev:e2e": "tsx src/e2e-server.ts"
   },
+  "config": {
+    "mongodbMemoryServer": {
+      "disablePostinstall": "1"
+    }
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
