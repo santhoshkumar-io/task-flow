@@ -164,8 +164,6 @@ Honest list. Some are deliberate, some are things I ran out of room for.
 
 **Anyone who signs in can read and edit every task.** Only the creator (or an admin) can delete. There are no private tasks and no per-task permissions. Registration is open, and the seat limit is only checked when inviting somebody, not when they register themselves. On a public URL that means anyone who finds it can make an account and see everything.
 
-**Last write wins.** Two people editing the same task at the same time, and the first one's change disappears with no warning. The fix is a version number on the task and a 409 when it doesn't match, which is maybe an hour of work. I chose to spend it elsewhere for a tool this size.
-
 **Rate limits live in one process's memory.** Two instances would each allow the full amount, and a restart forgets everything. A shared store is the real answer and it's a piece of infrastructure this project doesn't have.
 
 **Pagination uses skip.** Fine at 30 tasks, slower as the page number grows, because the database walks past the rows it's skipping. Cursors would fix it and can't produce the "Showing 1-10 of 42" the design asks for.

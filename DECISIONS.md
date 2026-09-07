@@ -42,8 +42,6 @@ Editing is the whole point of a shared list. Deleting is the one thing you can't
 
 **The server is the guard, the UI is a kindness.** Delete is hidden for people who can't use it, but hiding it isn't the protection. Curl the endpoint as the wrong user and you still get 404.
 
-**Last write wins on a concurrent edit**, and the first person's change vanishes silently. I know how to fix it: a version number on the task, 409 when it doesn't match, ask the second person to reload. I didn't, because for a tool this size the odds are low and the cost is a real chunk of UI. It's the limitation I'd fix first.
-
 ---
 
 ## Data
@@ -97,15 +95,3 @@ I took the hop. Verified after deploying: the cookie's domain is the Vercel addr
 **`TRUST_PROXY_HOPS` is a setting, not a constant.** Behind a proxy, every request looks like it came from the balancer, so a per-address rate limit becomes a global one and the sixth person to sign in that quarter hour is refused. The right number describes the hosting, not the app, so it belongs in config. It's a number and never `true`, because trusting the whole forwarded-for chain lets anyone extend it by hand.
 
 **Rate limit counts live in one process's memory.** Two instances would each allow the full amount and a restart forgets everything. Redis is the real answer and it's infrastructure this doesn't have. I'd rather write that down than pretend.
-
----
-
-## One thing I did that I'd said I wouldn't
-
-The plan had a list of things deliberately out of scope, with a rule attached: build something on it and you have to say whether the exclusion was wrong or the version was.
-
-**Duplicate** was on that list and I built it anyway, in the last stretch. The exclusion was wrong. It's the design's third menu item, it needed no server work at all (duplicating is a POST to `/api/tasks` with the same fields, which the create drawer already does), and leaving it out was costing more in explanation than building it cost in code.
-
-What a copy deliberately doesn't carry: the id, the creator, the comments, or the activity. It's a new task that starts out looking like an old one, not a clone of its history.
-
-Three things stayed excluded and are drawn but visibly dead, each saying why on hover: the notification bell, Settings, and the acceptable-use phrase on the login screen. The rule I held to is that a control which looks alive and silently does nothing is worse than either building it or leaving it out.
