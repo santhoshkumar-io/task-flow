@@ -32,14 +32,16 @@ export function Pagination({
   return (
     <div className="flex flex-col gap-4 border-t border-line px-4 py-3 md:flex-row md:items-center md:justify-between">
       {/* The desktop count describes the page; the mobile one describes the
-          accumulated stack, because Load more keeps what was already there. */}
-      <p className="text-xs text-muted">
+          accumulated stack, because Load more keeps what was already there.
+          Both are ranges — the mobile stack always starts at the first task,
+          so "1–20 of 42" is true rather than convenient. */}
+      <p className="text-center text-xs text-muted md:text-left">
         <span className="hidden md:inline">
           Showing {from}–{to} of {page.total}{" "}
           {page.total === 1 ? "task" : "tasks"}
         </span>
         <span className="md:hidden">
-          Showing {shownCount} of {page.total}{" "}
+          Showing {page.total === 0 ? 0 : 1}–{shownCount} of {page.total}{" "}
           {page.total === 1 ? "task" : "tasks"}
         </span>
       </p>

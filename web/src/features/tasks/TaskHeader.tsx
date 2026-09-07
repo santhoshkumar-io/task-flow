@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { cn } from "../../lib/cn";
 import { formatFullDate, formatRelative } from "../../lib/time";
 import type { Activity, Task } from "../../types";
 import { PriorityDot } from "./PriorityDot";
@@ -13,6 +14,8 @@ interface TaskHeaderProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** Where it sits in the phone stack. See TaskDetailPage. */
+  className?: string;
 }
 
 export function TaskHeader({
@@ -22,20 +25,55 @@ export function TaskHeader({
   onEdit,
   onDuplicate,
   onDelete,
+  className,
 }: TaskHeaderProps) {
   const actor = lastEditor(task, activity);
 
   return (
-    <div>
+    // One grid, laid out twice, so the ⋯ menu exists ONCE in the page.
+    //
+    // The phone frame puts it on a bar beside the back link; the desktop
+    // frame puts it beside Edit, under the back link. Rendering it in both
+    // places would put two buttons named "Task actions" in the document,
+    // one of them always hidden — a trap for anything that looks the page
+    // up by name, tests included.
+    <div
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4",
+        className,
+      )}
+    >
       <Link
         to="/tasks"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink"
+        className="col-start-1 row-start-1 inline-flex items-center gap-1.5 self-center text-sm text-muted hover:text-ink md:self-start"
       >
-        <span aria-hidden="true">←</span> Back to tasks
+        <span aria-hidden="true">←</span>
+        {/* The phone bar says where the arrow goes; the desktop link has
+            room to say it in full. */}
+        <span className="font-medium text-ink md:hidden">Tasks</span>
+        <span className="hidden md:inline">Back to tasks</span>
       </Link>
 
-      <div className="mt-4 flex items-start justify-between gap-4">
-        <div className="min-w-0">
+      {/* Row 1 on a phone, beside the back link. Row 2 on desktop, beside
+          the title. Edit is desktop-only: the frame does not draw it on a
+          phone, and "Edit task" is the first item in the menu anyway. */}
+      <div className="col-start-2 row-start-1 flex items-center gap-2 self-center justify-self-end md:row-start-2 md:self-start">
+        <Button
+          variant="secondary"
+          onClick={onEdit}
+          className="hidden md:inline-flex"
+        >
+          Edit
+        </Button>
+        <TaskActionsMenu
+          onEdit={onEdit}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+          canDelete={canDelete}
+        />
+      </div>
+
+      <div className="col-start-1 col-end-3 row-start-2 mt-4 min-w-0 md:col-end-2">
           <p className="text-xs text-muted">{task.key}</p>
           <h1 className="mt-1 font-heading text-2xl font-bold tracking-[-0.02em] text-ink">
             {task.title}
@@ -49,19 +87,6 @@ export function TaskHeader({
               {actor && ` by ${actor}`}
             </span>
           </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Button variant="secondary" onClick={onEdit}>
-            Edit
-          </Button>
-          <TaskActionsMenu
-            onEdit={onEdit}
-            onDuplicate={onDuplicate}
-            onDelete={onDelete}
-            canDelete={canDelete}
-          />
-        </div>
       </div>
     </div>
   );

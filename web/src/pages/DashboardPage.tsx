@@ -30,7 +30,10 @@ export function DashboardPage() {
           </p>
         </div>
 
-        <Button onClick={openCreate}>
+        {/* Desktop only, as on the task list. A phone already has the Create
+            Task pill floating over the tab bar, and the frame draws one entry
+            point per screen, not two. */}
+        <Button onClick={openCreate} className="hidden md:inline-flex">
           <Plus className="size-5" aria-hidden="true" />
           Create Task
         </Button>

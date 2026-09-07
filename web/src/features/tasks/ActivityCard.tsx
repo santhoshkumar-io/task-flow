@@ -18,13 +18,16 @@ import {
 export function ActivityCard({
   activity,
   people,
+  className,
 }: {
   activity: Activity[];
   /** The team list, used to turn the ids in an assignee row into names. */
   people: PersonRef[];
+  /** Where it sits in the phone stack. See TaskDetailPage. */
+  className?: string;
 }) {
   return (
-    <Card padding="none">
+    <Card padding="none" className={className}>
       <h2 className="border-b border-line px-4 py-3 font-heading text-sm font-semibold text-ink">
         Activity
       </h2>

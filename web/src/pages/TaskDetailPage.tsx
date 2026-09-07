@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
+import { Badge } from "../components/ui/Badge";
 import { Card } from "../components/ui/Card";
 import { CommentForm } from "../features/comments/CommentForm";
 import { CommentList } from "../features/comments/CommentList";
@@ -129,18 +130,26 @@ export function TaskDetailPage() {
               Section 6 puts Edit and the ⋯ "on the right" of the left column,
               and spanning the full width pushed them over the right rail,
               where they sat on top of the Task information card. */}
+          {/* Below 1024px both wrappers are `display: contents`, so the five
+              cards become direct children of this one column and the
+              `order-*` classes below can interleave them — header, then the
+              facts, then description, then comments, then activity, which is
+              the phone frame's order. At and above 1024px the wrappers
+              become real boxes again and the two-column layout is exactly
+              what it was. Spacing comes from this gap-6 either way. */}
           <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="min-w-0 flex-1 space-y-6">
+            <div className="contents lg:block lg:min-w-0 lg:flex-1 lg:space-y-6">
               <TaskHeader
                 task={task}
                 activity={activity.data ?? []}
                 canDelete={canDelete}
                 onDuplicate={() => duplicate.mutate(task)}
-            onEdit={() => setEditing(true)}
+                onEdit={() => setEditing(true)}
                 onDelete={() => setConfirmingDelete(true)}
+                className="order-1 lg:order-none"
               />
 
-              <Card padding="none">
+              <Card padding="none" className="order-3 lg:order-none">
                 <h2 className="border-b border-line px-4 py-3 font-heading text-sm font-semibold text-ink">
                   Description
                 </h2>
@@ -155,14 +164,12 @@ export function TaskDetailPage() {
                 </div>
               </Card>
 
-              <Card padding="none">
-                <h2 className="border-b border-line px-4 py-3 font-heading text-sm font-semibold text-ink">
-                  Comments{" "}
-                  <span className="font-normal text-muted">
-                    {/* The real count from the API, not comments.length —
-                        which would read 0 while the list is still loading. */}
-                    {commentCount}
-                  </span>
+              <Card padding="none" className="order-4 lg:order-none">
+                <h2 className="flex items-center gap-2 border-b border-line px-4 py-3 font-heading text-sm font-semibold text-ink">
+                  Comments
+                  {/* The real count from the API, not comments.length —
+                      which would read 0 while the list is still loading. */}
+                  <Badge tone="neutral">{commentCount}</Badge>
                 </h2>
 
                 {comments.isPending ? (
@@ -187,14 +194,14 @@ export function TaskDetailPage() {
               </Card>
             </div>
 
-            {/* The 300px-ish rail from section 6. Stacks under the content
-                below 1024px, which is where the design collapses to one
-                column. */}
-            <div className="w-full shrink-0 space-y-6 lg:w-[300px]">
-              <TaskInfoCard task={task} />
+            {/* The 300px-ish rail from section 6, and below 1024px two more
+                cards in the single column above. */}
+            <div className="contents lg:block lg:w-[300px] lg:shrink-0 lg:space-y-6">
+              <TaskInfoCard task={task} className="order-2 lg:order-none" />
               <ActivityCard
                 activity={activity.data ?? []}
                 people={users.data ?? []}
+                className="order-5 lg:order-none"
               />
             </div>
           </div>

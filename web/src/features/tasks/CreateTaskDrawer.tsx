@@ -8,6 +8,7 @@ import { Drawer } from "../../components/ui/Drawer";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
+import { Avatar } from "../../components/ui/Avatar";
 import { cn } from "../../lib/cn";
 import {
   DESCRIPTION_LIMIT,
@@ -39,6 +40,7 @@ const BLANK: CreateTaskValues = {
   status: "todo",
   priority: "medium",
   assigneeId: "",
+  dueDate: "",
 };
 
 export function CreateTaskDrawer({
@@ -108,6 +110,8 @@ export function CreateTaskDrawer({
       priority: values.priority,
       // The dropdown's empty choice is "", but the API wants null for nobody.
       assigneeId: values.assigneeId || null,
+      // Same shape for the date: an empty box means no due date, not "".
+      dueDate: values.dueDate || null,
     });
   });
 
@@ -136,15 +140,60 @@ export function CreateTaskDrawer({
       onOpenChange={setOpen}
       title="Create Task"
       description="Add a task and assign it to a teammate."
+      hideCloseBelowMd
+      header={
+        <div className="flex w-full min-w-0 items-center justify-between gap-3 md:block">
+          {/* Phone: Cancel · Create Task · Create, as the frame draws it.
+              Both Create buttons submit the same form through the form=
+              attribute, so neither of them is decoration. */}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-sm text-muted hover:text-ink md:hidden"
+          >
+            Cancel
+          </button>
+
+          <span className="font-heading text-base font-semibold text-ink md:hidden">
+            Create Task
+          </span>
+
+          <button
+            type="submit"
+            form="create-task-form"
+            disabled={mutation.isPending}
+            className="text-sm font-medium text-accent disabled:opacity-50 md:hidden"
+          >
+            Create
+          </button>
+
+          {/* Desktop: the title and its subtitle, exactly as before. */}
+          <span className="hidden md:block">
+            <span className="block font-heading text-xl font-semibold text-ink">
+              Create Task
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              Add a task and assign it to a teammate.
+            </span>
+          </span>
+        </div>
+      }
       footer={
         <>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
+          {/* Cancel already sits in the phone header, so this one would be
+              the second Cancel on the same screen. */}
+          <Button
+            variant="secondary"
+            onClick={() => setOpen(false)}
+            className="hidden md:inline-flex"
+          >
             Cancel
           </Button>
           <Button
             type="submit"
             form="create-task-form"
             loading={mutation.isPending}
+            className="w-full md:w-auto"
           >
             Create Task
           </Button>
@@ -192,7 +241,10 @@ export function CreateTaskDrawer({
           {...register("description")}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Side by side only once there is room. At 390px two columns leave
+            the four priority buttons about 38px each, which is not enough
+            for the word "Medium". */}
+        <div className="grid gap-4 md:grid-cols-2">
           <Field label="Status" htmlFor="create-status">
             <Controller
               control={control}
@@ -209,7 +261,15 @@ export function CreateTaskDrawer({
             />
           </Field>
 
-          <Field label="Priority" htmlFor="create-priority">
+          {/* The label points at the segmented group on a phone and at the
+              dropdown on desktop, because only one of the two is on screen
+              at a time. Pointing at whichever is hidden attaches the label
+              to nothing the reader can see. */}
+          <Field
+            label="Priority"
+            htmlFor="create-priority"
+            mobileHtmlFor="create-priority-group"
+          >
             <Controller
               control={control}
               name="priority"
@@ -219,6 +279,7 @@ export function CreateTaskDrawer({
                       A dropdown for four short options costs two taps where
                       this costs one. */}
                   <div
+                    id="create-priority-group"
                     role="group"
                     aria-label="Priority"
                     className="grid grid-cols-4 overflow-hidden rounded-lg border border-line md:hidden"
@@ -266,13 +327,32 @@ export function CreateTaskDrawer({
                 emptyLabel="Unassigned"
                 options={(users.data ?? []).map((user) => ({
                   value: user._id,
-                  label: user.name,
+                  // The frame draws the initials badge beside the name
+                  // here, as every other screen does where a person is
+                  // named.
+                  label: (
+                    <>
+                      <Avatar name={user.name} size="sm" />
+                      {user.name}
+                    </>
+                  ),
+                  text: user.name,
                 }))}
                 className="w-full"
               />
             )}
           />
         </Field>
+
+        {/* New in this pass. The frame draws it, the server has always
+            accepted and checked it, and until now the only way to set a
+            due date was to create the task and then edit it. */}
+        <Input
+          type="date"
+          label="Due Date"
+          error={errors.dueDate?.message}
+          {...register("dueDate")}
+        />
       </form>
     </Drawer>
   );
@@ -281,20 +361,40 @@ export function CreateTaskDrawer({
 function Field({
   label,
   htmlFor,
+  mobileHtmlFor,
   children,
 }: {
   label: string;
   htmlFor: string;
+  /** When the phone shows a different control, the id of that one. */
+  mobileHtmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-sm font-medium text-ink"
-      >
-        {label}
-      </label>
+      {mobileHtmlFor ? (
+        <>
+          <label
+            htmlFor={mobileHtmlFor}
+            className="mb-1.5 block text-sm font-medium text-ink md:hidden"
+          >
+            {label}
+          </label>
+          <label
+            htmlFor={htmlFor}
+            className="mb-1.5 hidden text-sm font-medium text-ink md:block"
+          >
+            {label}
+          </label>
+        </>
+      ) : (
+        <label
+          htmlFor={htmlFor}
+          className="mb-1.5 block text-sm font-medium text-ink"
+        >
+          {label}
+        </label>
+      )}
       {children}
     </div>
   );

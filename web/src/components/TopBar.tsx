@@ -1,14 +1,26 @@
 import { Bell, Menu, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserMenu } from "./UserMenu";
 
 interface TopBarProps {
   /** `TaskFlow › Tasks › TF-118` — the only part that changes between screens. */
   breadcrumb: string[];
+  /** The same thing said in one word, for a phone. */
+  title: string;
   onOpenMenu: () => void;
+  /**
+   * Whether to offer the magnifier on a phone. Off on screens that already
+   * have their own search box, so nobody is given two of them.
+   */
+  showSearch: boolean;
 }
 
-export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
+export function TopBar({
+  breadcrumb,
+  title,
+  onOpenMenu,
+  showSearch,
+}: TopBarProps) {
   const navigate = useNavigate();
 
   return (
@@ -23,7 +35,19 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         <Menu className="size-5" aria-hidden="true" />
       </button>
 
-      <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+      {/* A phone gets the name of the screen, not the chain that leads to
+          it. At 390px `TaskFlow › Tasks` spends half the bar saying something
+          the logo in the menu already says.
+
+          A <p> and not an <h1>: the page inside <main> already has the one
+          heading this screen gets, and a second h1 in the frame would give a
+          screen reader two answers to "what is this page". The desktop
+          breadcrumb beside it is not a heading either. */}
+      <p className="min-w-0 flex-1 truncate font-heading text-base font-semibold text-ink md:hidden">
+        {title}
+      </p>
+
+      <nav aria-label="Breadcrumb" className="hidden min-w-0 flex-1 md:block">
         <ol className="flex items-center gap-1.5 text-sm">
           {breadcrumb.map((crumb, index) => {
             const isLast = index === breadcrumb.length - 1;
@@ -77,12 +101,28 @@ export function TopBar({ breadcrumb, onOpenMenu }: TopBarProps) {
         </div>
       </form>
 
+      {/* Below 1024px the search FORM is hidden, so a phone gets the magnifier
+          on its own. It goes to the task list, which is where the search box
+          lives — the same destination the form above submits to. */}
+      {showSearch && (
+        <Link
+          to="/tasks"
+          aria-label="Search tasks"
+          className="rounded-lg p-2 text-ink hover:bg-line/40 lg:hidden"
+        >
+          <Search className="size-5" aria-hidden="true" />
+        </Link>
+      )}
+
+      {/* Desktop only. The bell is on the deliberate exclusion list and stays
+          inert where it is drawn; the phone frames do not draw it at all, and
+          a dead control is worth less on the smaller screen. */}
       <button
         type="button"
         disabled
         title="Notifications are not part of this build — see the README"
         aria-label="Notifications"
-        className="cursor-not-allowed rounded-lg p-2 text-muted opacity-60"
+        className="hidden cursor-not-allowed rounded-lg p-2 text-muted opacity-60 md:inline-flex"
       >
         <Bell className="size-5" aria-hidden="true" />
       </button>

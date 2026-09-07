@@ -175,6 +175,28 @@
   }
 }
 
+/* The navigation sheet on a phone comes from the LEFT, where the sidebar it
+   replaces lives. Same curve and same durations as the right-hand pair above,
+   so the two panels feel like one piece of furniture. */
+
+@keyframes tf-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes tf-slide-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 @keyframes tf-fade-in {
   from {
     opacity: 0;
@@ -201,6 +223,14 @@
   animation: tf-slide-out-right 180ms ease-in;
 }
 
+.tf-slide-panel-left[data-state="open"] {
+  animation: tf-slide-in-left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tf-slide-panel-left[data-state="closed"] {
+  animation: tf-slide-out-left 180ms ease-in;
+}
+
 .tf-fade[data-state="open"] {
   animation: tf-fade-in 180ms ease-out;
 }
@@ -214,6 +244,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tf-skeleton,
   .tf-slide-panel[data-state],
+  .tf-slide-panel-left[data-state],
   .tf-fade[data-state] {
     animation: none;
   }

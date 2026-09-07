@@ -1,28 +1,30 @@
-import { LayoutGrid, ListChecks, Settings, UserCheck, Users } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../features/auth/auth-context";
 import { useMyTasksActive } from "../hooks/useMyTasksActive";
 import { useMyOpenTaskCount } from "../hooks/useStats";
 import { cn } from "../lib/cn";
+import { LINKS } from "./nav-links";
 import { Avatar } from "./ui/Avatar";
 import { Logo } from "./Logo";
 
 interface SidebarProps {
   /** Called when a link is tapped, so the mobile slide-over can close itself. */
   onNavigate?: () => void;
+  /**
+   * "rail" is the fixed 216px strip on desktop.
+   *
+   * "sheet" is the phone slide-over. It draws no logo of its own — the sheet
+   * header holds it, beside the close button — and its footer carries the
+   * email and a sign-out button, because on a phone the top-bar avatar menu
+   * is behind the sheet and cannot be reached.
+   */
+  variant?: "rail" | "sheet";
 }
 
-// Icons come straight from lucide rather than through a wrapper each — the
-// wrapper only existed when every glyph was hand-drawn here.
-const LINKS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { to: "/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/my-tasks", label: "My Tasks", icon: UserCheck },
-  { to: "/team", label: "Team", icon: Users },
-] as const;
-
-export function Sidebar({ onNavigate }: SidebarProps) {
-  const { user } = useAuth();
+export function Sidebar({ onNavigate, variant = "rail" }: SidebarProps) {
+  const { user, logout } = useAuth();
+  const sheet = variant === "sheet";
 
   // The count badge the design draws beside "My Tasks". V6 left it out because
   // the number did not exist yet; this is it, from GET /api/users/stats.
@@ -42,11 +44,21 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   };
 
   return (
-    // 216px wide and never scrolls — section 3 of the design reference.
-    <aside className="flex h-full w-sidebar shrink-0 flex-col border-r border-line bg-surface">
-      <div className="flex h-14 items-center px-4">
-        <Logo />
-      </div>
+    // 216px wide and never scrolls — section 3 of the design reference. The
+    // sheet takes its width and its surface from the panel it sits in.
+    <aside
+      className={cn(
+        "flex h-full flex-col",
+        sheet
+          ? "bg-white"
+          : "w-sidebar shrink-0 border-r border-line bg-surface",
+      )}
+    >
+      {!sheet && (
+        <div className="flex h-14 items-center px-4">
+          <Logo />
+        </div>
+      )}
 
       <nav className="flex-1 px-3 py-2">
         <p className="px-2 pb-2 text-[11px] font-medium tracking-wider text-muted uppercase">
@@ -106,10 +118,30 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         {user && (
           <div className="flex items-center gap-2.5 px-2 py-1.5">
             {/* Always you, so always tinted. */}
-            <Avatar name={user.name} size="sm" tone="accent" />
-            <span className="truncate text-sm font-medium text-ink">
-              {user.name}
-            </span>
+            <Avatar name={user.name} size={sheet ? "md" : "sm"} tone="accent" />
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-ink">
+                {user.name}
+              </p>
+              {/* The email only on a phone. The 216px rail has no room for it,
+                  and the top-bar avatar menu already shows it there. */}
+              {sheet && (
+                <p className="truncate text-xs text-muted">{user.email}</p>
+              )}
+            </div>
+
+            {sheet && (
+              <button
+                type="button"
+                onClick={() => void logout()}
+                aria-label="Sign out"
+                title="Sign out"
+                className="shrink-0 rounded-lg p-2 text-muted hover:bg-line/40 hover:text-ink"
+              >
+                <LogOut className="size-5" aria-hidden="true" />
+              </button>
+            )}
           </div>
         )}
       </div>

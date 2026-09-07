@@ -56,6 +56,24 @@ export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 export type LoginValues = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;
 
+/**
+ * True when a date string is before the start of today.
+ *
+ * Compared against the START of today, not this moment, so a task due today is
+ * never "in the past" — the same rule the server applies on create.
+ */
+export function isPastDueDate(value: string): boolean {
+  if (!value) return false;
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  return new Date(`${value}T00:00:00`) < startOfToday;
+}
+
+/** The design's exact wording, from section 6. */
+export const PAST_DUE_DATE_MESSAGE = "Due date can't be in the past.";
+
 // The SAME rules as server/src/modules/tasks/task.schema.ts, with one
 // deliberate difference noted below.
 export const DESCRIPTION_LIMIT = 2000;
@@ -83,11 +101,22 @@ export const createTaskSchema = z.object({
 
   // "" is the empty choice in the dropdown; it becomes null on the way out.
   assigneeId: z.string(),
+
+  // "" means no due date. An <input type="date"> gives "" when cleared.
+  //
+  // The past-date rule IS here, because createTaskSchema on the server has
+  // it too. There is no such thing as a task that was already overdue on the
+  // day it was created.
+  dueDate: z
+    .string()
+    .refine((value) => !isPastDueDate(value), PAST_DUE_DATE_MESSAGE),
 });
 
 export type CreateTaskValues = z.infer<typeof createTaskSchema>;
 
-// The edit form. Same fields as create, plus a due date.
+// The edit form. The same fields as create, with the due date REPLACED
+// rather than inherited: .extend() overwrites the key, which is what drops the
+// past-date rule create applies.
 //
 // The past-date rule is NOT here, and that is deliberate on both sides. The
 // server dropped it from updateTaskSchema so an already-overdue task can still
@@ -96,7 +125,7 @@ export type CreateTaskValues = z.infer<typeof createTaskSchema>;
 //
 // The form checks it only when the date field has actually been CHANGED, which
 // is a question about the edit rather than about the value. See
-// isPastDueDate below and TaskEditForm.
+// isPastDueDate above and TaskEditForm.
 export const editTaskSchema = createTaskSchema.extend({
   /** "" means no due date. An <input type="date"> gives "" when cleared. */
   dueDate: z.string(),
@@ -104,23 +133,6 @@ export const editTaskSchema = createTaskSchema.extend({
 
 export type EditTaskValues = z.infer<typeof editTaskSchema>;
 
-/**
- * True when a date string is before the start of today.
- *
- * Compared against the START of today, not this moment, so a task due today is
- * never "in the past" — the same rule the server applies on create.
- */
-export function isPastDueDate(value: string): boolean {
-  if (!value) return false;
-
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  return new Date(`${value}T00:00:00`) < startOfToday;
-}
-
-/** The design's exact wording, from section 6. */
-export const PAST_DUE_DATE_MESSAGE = "Due date can't be in the past.";
 
 export const COMMENT_LIMIT = 2000;
 

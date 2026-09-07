@@ -1,11 +1,15 @@
+import type { LucideIcon } from "lucide-react";
 import { Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { CreateTaskDrawer } from "../features/tasks/CreateTaskDrawer";
 import { CreateTaskContext } from "../features/tasks/create-task-context";
 import { useMyTasksActive } from "../hooks/useMyTasksActive";
 import { cn } from "../lib/cn";
+import { LINKS } from "./nav-links";
 import { Sidebar } from "./Sidebar";
+import { Drawer } from "./ui/Drawer";
+import { Logo } from "./Logo";
 import { TopBar } from "./TopBar";
 
 // The frame every signed-in screen sits inside.
@@ -30,33 +34,26 @@ export function AppLayout() {
   const openMenu = () => setMenu({ open: true, at: location.pathname });
   const closeMenu = () => setMenu({ open: false, at: location.pathname });
 
-  // Escape closes it, which people expect from anything covering the page.
-  //
-  // The listener is on the document rather than on the panel, because focus may
-  // be anywhere on the page when the key is pressed. That is a real external
-  // system, which is what an effect is for.
-  useEffect(() => {
-    if (!menuOpen) return;
+  // Escape, the focus trap, the scroll lock and returning focus to the
+  // hamburger all come from Radix now that the sheet is a Drawer. The hand-
+  // rolled panel this replaced had none of them.
 
-    const pathname = location.pathname;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenu({ open: false, at: pathname });
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [menuOpen, location.pathname]);
+  // On a phone the task detail screen draws its own bar — "← Tasks" on the
+  // left, the ⋯ menu on the right — and docks the comment box where the tab
+  // bar would be. Two bars top and two bottom is 224px of an 844px screen.
+  const taskDetail = location.pathname.startsWith("/tasks/");
 
   // The drawer is owned by the FRAME, not the task list, because the design
   // puts a Create button in the mobile bottom bar — a sibling of <Outlet />
   // with no prop path to the page inside it.
   const [createOpen, setCreateOpen] = useState(false);
+  // A new object every render would re-render every consumer of the context
+  // for nothing. setCreateOpen is stable, so this is memoised for the life of
+  // the layout — it is listed because React Compiler checks the list against
+  // what it infers, and an empty one does not match.
   const createTask = useMemo(
     () => ({ open: () => setCreateOpen(true) }),
-    // No dependencies: a new object every render would re-render every
-    // consumer of the context for nothing.
-    [],
+    [setCreateOpen],
   );
 
   return (
@@ -67,33 +64,39 @@ export function AppLayout() {
           <Sidebar />
         </div>
 
-        {/* Phone: slides in over a dimmed page. */}
-        {menuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <button
-              type="button"
-              aria-label="Close menu"
-              onClick={closeMenu}
-              className="absolute inset-0 bg-ink/40"
-            />
-            <div className="relative h-full w-sidebar shadow-md">
-              <Sidebar onNavigate={closeMenu} />
-            </div>
-          </div>
-        )}
+        {/* Phone: slides in from the left over a dimmed page. Narrow on
+            purpose — the dimmed page stays visible beside it, so it reads as
+            a layer over this screen rather than a new one. */}
+        <Drawer
+          open={menuOpen}
+          onOpenChange={(next) => (next ? openMenu() : closeMenu())}
+          side="left"
+          width="menu"
+          padded={false}
+          title="Menu"
+          header={<Logo />}
+        >
+          <Sidebar variant="sheet" onNavigate={closeMenu} />
+        </Drawer>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar
-            breadcrumb={breadcrumbFor(location.pathname)}
-            onOpenMenu={openMenu}
-          />
+          <div className={cn(taskDetail && "hidden md:block")}>
+            <TopBar
+              breadcrumb={breadcrumbFor(location.pathname)}
+              title={titleFor(location.pathname)}
+              onOpenMenu={openMenu}
+              showSearch={!hasOwnSearch(location.pathname)}
+            />
+          </div>
 
-          {/* 40px content padding on desktop — a chosen value, see 0003. */}
+          {/* 40px content padding on desktop — a chosen value, see 0003.
+              pb-24 clears whichever bar is at the bottom on a phone: the tab
+              bar everywhere else, the docked comment box here. */}
           <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-10 md:pb-10">
             <Outlet />
           </main>
 
-          <MobileTabBar onCreate={createTask.open} />
+          {!taskDetail && <MobileTabBar onCreate={createTask.open} />}
         </div>
 
         <CreateTaskDrawer open={createOpen} onOpenChange={setCreateOpen} />
@@ -102,35 +105,53 @@ export function AppLayout() {
   );
 }
 
-// Two tabs plus a round black Create button — section 3 of the design
-// reference. Only below 768px.
+// Three tabs and a Create Task pill — the phone frames. Only below 768px.
+//
+// The tabs are the sidebar's own list with Team dropped, rather than a second
+// copy of it. V9 already lost a morning to the tab bar and the sidebar
+// disagreeing about which item was lit; the fix then was one shared rule, and
+// this is the same idea applied to the list itself.
+const TABS = LINKS.filter((link) => link.to !== "/team");
+
 function MobileTabBar({ onCreate }: { onCreate: () => void }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-line bg-surface md:hidden">
-      {/* Same override the sidebar uses: after /my-tasks redirects, the URL
-          says /tasks, so without this "Tasks" lights up while you are looking
-          at your own list and "My Tasks" stays grey. */}
-      <TabLink to="/tasks" label="Tasks" />
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch border-t border-line bg-surface md:hidden">
+        {TABS.map(({ to, label, icon }) => (
+          <TabLink key={to} to={to} label={label} icon={icon} />
+        ))}
+      </nav>
 
-      {/* Inert in V6 with a title saying why. Live now that V7 has built the
-          drawer it opens. */}
+      {/* The frame draws this pill sitting ON the third tab. Floated clear of
+          the bar instead: a tab you cannot press is exactly the dead control
+          AGENTS.md calls the worst of the three options. bottom-20 is the
+          64px bar plus 16px. */}
       <button
         type="button"
         onClick={onCreate}
-        aria-label="Create task"
-        className="flex size-12 items-center justify-center rounded-full bg-ink text-white hover:bg-ink/90"
+        className="fixed right-4 bottom-20 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-white shadow-md hover:bg-ink/90 md:hidden"
       >
-        <Plus className="size-6" aria-hidden="true" />
+        <Plus className="size-5" aria-hidden="true" />
+        Create Task
       </button>
-
-      <TabLink to="/my-tasks" label="My Tasks" />
-    </nav>
+    </>
   );
 }
 
-function TabLink({ to, label }: { to: string; label: string }) {
+function TabLink({
+  to,
+  label,
+  icon: Icon,
+}: {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+}) {
   const viewingMyTasks = useMyTasksActive();
 
+  // Same override the sidebar uses: after /my-tasks redirects, the URL says
+  // /tasks, so without this "Tasks" lights up while you are looking at your
+  // own list and "My Tasks" stays grey.
   const isActive = (routerSaysActive: boolean) => {
     if (to === "/my-tasks") return viewingMyTasks;
     if (to === "/tasks") return routerSaysActive && !viewingMyTasks;
@@ -142,11 +163,12 @@ function TabLink({ to, label }: { to: string; label: string }) {
       to={to}
       className={({ isActive: routerSaysActive }) =>
         cn(
-          "px-4 text-xs font-medium transition-colors",
+          "flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
           isActive(routerSaysActive) ? "text-ink" : "text-muted",
         )
       }
     >
+      <Icon className="size-5" aria-hidden="true" />
       {label}
     </NavLink>
   );
@@ -167,4 +189,23 @@ function breadcrumbFor(pathname: string): string[] {
 
   const name = names[pathname];
   return name ? ["TaskFlow", name] : ["TaskFlow"];
+}
+
+// The one word a phone shows instead of the chain. Derived from the same
+// array, so there is still only one place the screen names are written down.
+//
+// The dashboard is the home screen and carries the brand, as the frame draws
+// it. Everywhere else it is the last crumb — the screen you are on.
+function titleFor(pathname: string): string {
+  if (pathname === "/dashboard") return "TaskFlow";
+
+  const crumbs = breadcrumbFor(pathname);
+  return crumbs[crumbs.length - 1];
+}
+
+// Screens with a search box of their own. Offering the top-bar magnifier here
+// too would put two searches on one phone screen, and only one of them would
+// search what you are looking at.
+function hasOwnSearch(pathname: string): boolean {
+  return pathname === "/tasks" || pathname === "/team";
 }

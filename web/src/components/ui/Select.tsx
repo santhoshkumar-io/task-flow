@@ -1,10 +1,21 @@
 import { Check, ChevronDown } from "lucide-react";
 import * as RadixSelect from "@radix-ui/react-select";
+import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
 export interface SelectOption {
   value: string;
-  label: string;
+  /**
+   * What is drawn. Usually a string; a node when the option carries something
+   * beside the words, as the assignee list carries an avatar.
+   */
+  label: ReactNode;
+  /**
+   * The plain words, when `label` is not a string. Radix types ahead against
+   * this, so an option drawn as an avatar plus a name is still reachable by
+   * typing the name.
+   */
+  text?: string;
 }
 
 interface SelectProps {
@@ -68,7 +79,7 @@ export function Select({
           className,
         )}
       >
-        <span className="truncate">
+        <span className="flex min-w-0 items-center gap-2 truncate">
           {label && <span className="text-muted">{label} : </span>}
           {selected ? (
             selected.label
@@ -97,13 +108,16 @@ export function Select({
               <RadixSelect.Item
                 key={option.value}
                 value={option.value}
+                textValue={option.text ?? (typeof option.label === "string" ? option.label : undefined)}
                 className={cn(
                   "relative flex cursor-pointer items-center rounded-md py-2 pr-8 pl-3",
                   "text-sm text-ink select-none",
                   "data-[highlighted]:bg-surface data-[highlighted]:outline-none",
                 )}
               >
-                <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
+                <RadixSelect.ItemText>
+                  <span className="flex items-center gap-2">{option.label}</span>
+                </RadixSelect.ItemText>
                 {/* The tick beside the selected option — drawn in section 5. */}
                 <RadixSelect.ItemIndicator className="absolute right-2 inline-flex">
                   <Check className="size-5" aria-hidden="true" />

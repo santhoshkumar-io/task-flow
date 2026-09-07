@@ -32,9 +32,12 @@ import { useAuth } from "../auth/auth-context";
 export function CommentItem({
   comment,
   taskId,
+  className,
 }: {
   comment: Comment;
   taskId: string;
+  /** Used by the phone fold in CommentList. */
+  className?: string;
 }) {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -48,7 +51,7 @@ export function CommentItem({
   const edited = comment.updatedAt !== comment.createdAt;
 
   return (
-    <li className="flex gap-3 px-4 py-4">
+    <li className={cn("flex gap-3 px-4 py-4", className)}>
       <PersonAvatar person={comment.authorId} size="md" />
 
       <div className="min-w-0 flex-1">

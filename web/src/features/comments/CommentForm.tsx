@@ -47,11 +47,16 @@ export function CommentForm({ onSubmit, pending, error }: CommentFormProps) {
       onSubmit={submit}
       className={cn(
         "flex gap-3 border-t border-line bg-white p-4",
-        // Docked to the bottom below 768px — section 8.9. Sticky rather than
-        // fixed: it stays in the flow, so it cannot overlap the last comment
-        // and needs no compensating padding. bottom-16 clears the mobile tab
-        // bar, which is 64px tall.
-        "sticky bottom-16 z-10 md:static md:z-auto",
+        // Docked to the bottom of the SCREEN below 768px — section 8.9 and
+        // the phone frame, which draws it where the tab bar would be. It
+        // was sticky inside the comments card until now, which meant it
+        // scrolled away as soon as you reached the cards below.
+        //
+        // The tab bar is hidden on this route (see AppLayout) so the two
+        // never stack, and <main> already has pb-24 to keep the last
+        // comment clear of it.
+        "fixed inset-x-0 bottom-0 z-30 p-3",
+        "md:static md:z-auto md:p-4",
       )}
     >
       {/* The composer shows your own avatar, so it carries your tint. */}
@@ -68,11 +73,13 @@ export function CommentForm({ onSubmit, pending, error }: CommentFormProps) {
         <div className="flex items-end gap-2">
           <Textarea
             rows={1}
-            placeholder="Write a comment…"
+            placeholder="Add a comment…"
+            // The name stays as it was. A placeholder is not a label, and
+            // this is what a screen reader announces.
             aria-label="Write a comment"
-            // Short on a phone where the docked bar must not eat the screen,
-            // taller on desktop where there is room.
-            className="md:min-h-24"
+            // A single rounded line on a phone, as the frame draws it.
+            // Taller and square on desktop, where there is room for it.
+            className="max-md:resize-none max-md:rounded-full max-md:px-4 md:min-h-24"
             // The Zod rule refuses an empty body with the server's own wording,
             // so nothing is sent for an empty comment.
             error={errors.body?.message ?? apiMessage(error)}

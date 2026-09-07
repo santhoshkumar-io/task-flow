@@ -25,11 +25,16 @@ export function RecentTasksCard() {
         <h2 className="font-heading text-sm font-semibold text-ink">
           Recent Tasks
         </h2>
+        {/* Two words on a phone, where the header row is 300px wide. The
+            link is named in full for a screen reader either way, so what it
+            leads to never depends on the width of the screen. */}
         <Link
           to="/tasks"
-          className="text-xs font-medium text-accent hover:underline"
+          aria-label="View all tasks"
+          className="shrink-0 text-xs font-medium text-accent hover:underline"
         >
-          View all tasks →
+          <span className="md:hidden">View all</span>
+          <span className="hidden md:inline">View all tasks →</span>
         </Link>
       </div>
 
