@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "dev:e2e": "tsx src/e2e-server.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { env, isProduction } from "./config/env.js";
 import { connectDb, disconnectDb } from "./config/db.js";
 import { hashPassword } from "./lib/password.js";
@@ -174,19 +175,15 @@ function timeline(createdHoursAgo: number, steps: number, pace = 1): Date[] {
   );
 }
 
-async function seed() {
-  const forced = process.argv.includes("--force");
-
-  if (isProduction && !forced) {
-    console.error(
-      "\nRefusing to run: NODE_ENV is production and this deletes every user and task.\n" +
-        "Pass --force if that is genuinely what you want.\n",
-    );
-    process.exit(1);
-  }
-
-  await connectDb(env.MONGODB_URI);
-
+/**
+ * Everything the seed writes, on a connection somebody else already opened.
+ *
+ * Split out from `seed()` so the end-to-end launcher can reuse it against its
+ * throwaway in-memory database without going near `server/.env`. The guard, the
+ * connection and the disconnection stay in `seed()`, because a caller that
+ * already holds a connection must not have it closed underneath it.
+ */
+export async function seedData() {
   console.log("\nDeleting existing data...");
   const [users, tasks, counters, comments, activity] = await Promise.all([
     UserModel.deleteMany({}),
@@ -398,12 +395,36 @@ async function seed() {
     console.log(`  ${user.email}   ${DEMO_PASSWORD}`);
   }
   console.log("");
+}
 
+/** `npm run seed` — the command-line wrapper. Behaviour is unchanged. */
+async function seed() {
+  const forced = process.argv.includes("--force");
+
+  if (isProduction && !forced) {
+    console.error(
+      "\nRefusing to run: NODE_ENV is production and this deletes every user and task.\n" +
+        "Pass --force if that is genuinely what you want.\n",
+    );
+    process.exit(1);
+  }
+
+  await connectDb(env.MONGODB_URI);
+  await seedData();
   await disconnectDb();
 }
 
-seed().catch(async (error) => {
-  console.error("\nSeed failed:", error);
-  await disconnectDb();
-  process.exit(1);
-});
+// Only when this file IS the command being run.
+//
+// Without this guard, `import { seedData } from "./seed.js"` would run the whole
+// command-line seed as a side effect of the import — connecting to whatever
+// MONGODB_URI is in server/.env and deleting every user and task in it. The
+// end-to-end launcher imports from this file, so that would have been a real
+// way to lose the development database.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed().catch(async (error) => {
+    console.error("\nSeed failed:", error);
+    await disconnectDb();
+    process.exit(1);
+  });
+}

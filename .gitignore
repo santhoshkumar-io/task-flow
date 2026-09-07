@@ -3,6 +3,11 @@ dist/
 build/
 coverage/
 
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+
 .env
 .env.local
 .env.*.local
