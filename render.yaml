@@ -14,6 +14,13 @@ services:
     # Closest free region to the people using this.
     region: singapore
 
+    # Named explicitly. Without it Render follows the repository default
+    # branch, which is main — and main holds nothing but a README, so the
+    # build would fail for a completely different reason.
+    #
+    # This becomes main once the pull request is merged.
+    branch: v10-v11-added-remaining-feature-and-security-ensured
+
     # There is no package.json at the repository root — this is two projects in
     # one repo, not a workspace. Render runs everything below inside server/.
     rootDir: server
