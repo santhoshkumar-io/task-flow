@@ -2,7 +2,7 @@
 
 ## What I used
 
-**Claude Code** (Opus), in the terminal and inside VS Code. That was the only AI tool.
+**Claude Code**, in the terminal and inside VS Code. That was the only AI tool.
 
 ## What I used it for
 
@@ -68,25 +68,7 @@ Changed to a `<p>`. The desktop breadcrumb sitting next to it isn't a heading ei
 
 I mention it because the fix was easy and noticing it wasn't. It's the kind of thing that looks perfect in a screenshot.
 
-### 3. Fixing the deploy in the wrong place, twice
-
-Suboptimal, and it cost about an hour.
-
-The Render build failed with roughly eighty TypeScript errors. All one cause: Render sets `NODE_ENV=production`, npm then skips devDependencies, and that's where `typescript` and every `@types/*` package lives. The compiler ran with no idea what `process` or `express` were.
-
-First fix: add `--include=dev` to the build command in `render.yaml`. Correct, and it changed nothing, because the service had been created by hand in the Render dashboard and a hand-made service ignores `render.yaml` completely. Two more failed builds before that was established by reading the service config instead of assuming.
-
-Second fix: put `include=dev` in `server/.npmrc`, which npm reads whatever the build command says. That worked.
-
-And then that quietly broke something else. npm lets `--include` beat `--omit`, so the `npm prune --omit=dev` at the end of the build was doing nothing, and every build tool was shipping to production. Nobody would have noticed. It only came out because the prune result got checked instead of assumed:
-
-```
-typescript: still there
-```
-
-The lesson I took: "the fix is correct" and "the fix is in a place that runs" are different questions, and the second one is easy to skip.
-
-### 4. Changing more than I asked for
+### 3. Changing more than I asked for
 
 I asked for one thing: the signed-in person's own avatar should be tinted, so you can pick yourself out of a list. What came back tinted every avatar, which made the tint mean nothing.
 
@@ -94,7 +76,7 @@ I said so. The second attempt tinted the right one, but applied the rule by hand
 
 The fix that stuck was a single `PersonAvatar` component that decides the tint itself by comparing ids. One place to be wrong instead of eight.
 
-There's a pattern in this and in number 3. The first answer is usually the one that satisfies the sentence I typed. Whether it's the right shape is my job.
+There's a pattern here. The first answer is usually the one that satisfies the sentence I typed. Whether it's the right shape is my job.
 
 ---
 
@@ -114,4 +96,4 @@ I picked the proxy. That's the kind of use I'd defend: it found a problem I woul
 
 Roughly: it wrote most of the lines, I decided what the lines should do and checked they did it.
 
-The checking is not optional. Three of the four problems above were found by running something, not by reading code, and the worst one looked completely harmless in a diff. Reviewing generated code the way you'd review a colleague's is not enough, because a colleague wouldn't hand you a two-line function move that empties a database.
+The checking is not optional. Two of the three problems above were found by running something, not by reading code, and the worst one looked completely harmless in a diff. Reviewing generated code the way you'd review a colleague's is not enough, because a colleague wouldn't hand you a two-line function move that empties a database.
