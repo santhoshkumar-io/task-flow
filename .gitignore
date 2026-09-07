@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+coverage/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+
+.env
+.env.local
+.env.*.local
+
+# private working record — see AGENTS.md
+docs/
+
+.DS_Store
+*.log
+npm-debug.log*
+
+.vscode/
+.idea/
+.claude/settings.local.json

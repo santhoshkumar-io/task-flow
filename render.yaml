@@ -1,0 +1,65 @@
+# How the API is hosted, written down rather than clicked into a dashboard.
+#
+# Render calls this a Blueprint. Everything here except the four secrets is in
+# git, so the hosting can be rebuilt from this file and the settings that are
+# NOT in it are exactly the ones that must never be committed.
+#
+# See docs/decisions/0027-deploying-to-render-and-vercel.md.
+
+services:
+  - type: web
+    name: taskflow-api
+    runtime: node
+    plan: free
+    # Closest free region to the people using this.
+    region: singapore
+
+    # There is no package.json at the repository root — this is two projects in
+    # one repo, not a workspace. Render runs everything below inside server/.
+    rootDir: server
+
+    # ci, not install: it installs exactly what package-lock.json pins, and
+    # fails instead of quietly resolving something newer.
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+
+    # Render calls this to decide whether the service is alive. It is a real
+    # route that also reports the database connection, so a server that is
+    # listening but cannot reach Mongo is not counted as healthy.
+    healthCheckPath: /api/health
+
+    envVars:
+      # The same version the tests run on. Left to Render's default, a major
+      # version could change under us between one deploy and the next.
+      - key: NODE_VERSION
+        value: 24.20.0
+
+      - key: NODE_ENV
+        value: production
+
+      # Two proxies stand in front of this service: Vercel's edge, which
+      # rewrites /api to here, and Render's own load balancer. Without this the
+      # caller's address is the balancer's, every request lands in one bucket,
+      # and the sixth person to sign in within fifteen minutes is refused.
+      # See TRUST_PROXY_HOPS in server/src/config/env.ts.
+      - key: TRUST_PROXY_HOPS
+        value: 2
+
+      # Render generates this once and keeps it. It is never in git, never in a
+      # terminal, and nobody has to invent a random string by hand.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # sync: false means "ask, do not read from this file". The connection
+      # string carries a database password, so it is set in the dashboard and
+      # lives nowhere else.
+      - key: MONGODB_URI
+        sync: false
+
+      # Both are the site's public address. They are separate because one says
+      # who may call this API and the other says what link to put in an email —
+      # the day they differ, changing one must not silently change the other.
+      - key: CORS_ORIGIN
+        sync: false
+      - key: APP_URL
+        sync: false
