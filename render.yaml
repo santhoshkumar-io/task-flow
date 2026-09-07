@@ -18,9 +18,17 @@ services:
     # one repo, not a workspace. Render runs everything below inside server/.
     rootDir: server
 
+    # --include=dev is the whole reason the first build failed. Render sets
+    # NODE_ENV=production, and npm then skips devDependencies — which is where
+    # typescript and every @types/* package live. The compiler had no idea what
+    # `process`, `console` or `express` were.
+    #
     # ci, not install: it installs exactly what package-lock.json pins, and
     # fails instead of quietly resolving something newer.
-    buildCommand: npm ci && npm run build
+    #
+    # prune afterwards, because the build tools are dead weight once dist/
+    # exists and nothing at runtime imports them.
+    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
     startCommand: npm run start
 
     # Render calls this to decide whether the service is alive. It is a real

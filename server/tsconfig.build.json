@@ -1,0 +1,14 @@
+// What ships. Everything in tsconfig.json, minus the files that exist only to
+// support testing.
+//
+// src/e2e-server.ts starts a throwaway in-memory MongoDB for the Playwright
+// suite. It imports mongodb-memory-server, which is a devDependency, and it
+// sets NODE_ENV=test on purpose. Neither belongs on a production server, and
+// compiling it there means the build needs a test-only package to succeed.
+//
+// `npm run typecheck` still uses tsconfig.json, so this file is not checked any
+// less — it is only not emitted.
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "src/e2e-server.ts"]
+}
